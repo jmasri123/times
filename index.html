@@ -144,6 +144,7 @@ function countdowns(){
  [['DS',0,29],['PS',1,5]].forEach(e=>{let d=new Date(b.getFullYear(),e[1],e[2],12);if(d<b)d=new Date(b.getFullYear()+1,e[1],e[2],12);ev.push([Math.round((d-b)/864e5),e[0],ds(d)])});
  [['Adam',3,17],['Nora',4,29],['Nahed',5,9],['Zaynab',5,23]].forEach(e=>{let d=new Date(b.getFullYear(),e[1],e[2],12);if(d<b)d=new Date(b.getFullYear()+1,e[1],e[2],12);const k=Math.round((d-b)/864e5);if(k<=5)ev.push([k,e[0]+' BD',ds(d)])});
  try{const fm=new Intl.DateTimeFormat('en-u-ca-islamic-umalqura',{day:'numeric',month:'numeric',year:'numeric'}),hp=d=>{const o={};fm.formatToParts(d).forEach(x=>o[x.type]=parseInt(x.value));return o},t=hp(b);
+  [['Jaafar',2,1],['Adam',5,13],['Nahed',6,21],['Nora',7,19],['Zaynab',9,17]].forEach(e=>{for(let k=0;k<=5;k++){const d=new Date(b.getTime()+k*864e5),h=hp(d);if(h.month==e[1]&&h.day==e[2]){ev.push([k,e[0]+' BD (H)',ds(d)]);break}}});
   if(t.month==9)ev.push([0,'Ramadan','Day '+t.day]);else for(let k=1;k<=400;k++){const d=new Date(b.getTime()+k*864e5),h=hp(d);if(h.month==9&&h.day==1){if(k<=90)ev.push([k,'Ramadan','≈ '+ds(d)]);break}}}catch(e){}
  window.RMD=ev.find(x=>x[1]=='Ramadan');const rows=ev.filter(x=>x[1]!='Ramadan');
  rows.sort((a,c)=>a[0]-c[0]);
