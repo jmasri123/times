@@ -149,8 +149,8 @@ function countdowns(){
   if(t.month==9)ev.push([0,'Ramadan','Day '+t.day]);else for(let k=1;k<=400;k++){const d=new Date(b.getTime()+k*864e5),h=hp(d);if(h.month==9&&h.day==1){if(k<=90)ev.push([k,'Ramadan','≈ '+ds(d)]);break}}}catch(e){}
  window.RMD=ev.find(x=>x[1]=='Ramadan');const rows=ev.filter(x=>x[1]!='Ramadan');
  rows.sort((a,c)=>a[0]-c[0]);
- const td='padding:7px 10px;border-top:1px solid var(--bd)';
- return '<table style="margin:4px auto 0;border-collapse:collapse;font-size:16px"><thead><tr style="color:var(--mut);font-size:13px;text-align:left"><th style="padding:4px 10px;font-weight:600">Event</th><th style="padding:4px 10px;font-weight:600;text-align:center">Days left</th><th style="padding:4px 10px;font-weight:600">Date</th></tr></thead><tbody>'+rows.map(x=>'<tr><td style="'+td+';font-weight:700">'+x[1]+'</td><td style="'+td+';text-align:center;font-weight:700">'+(x[0]==0?'Today':x[0])+'</td><td style="'+td+';color:var(--mut)">'+x[2]+'</td></tr>').join('')+'</tbody></table>'}
+ const td='padding:4px 8px;border-top:1px solid var(--bd)';
+ return '<table style="margin:4px auto 0 -6px;border-collapse:collapse;font-size:13px"><thead><tr style="color:var(--mut);font-size:11px;text-align:left"><th style="padding:3px 8px;font-weight:600">Event</th><th style="padding:3px 8px;font-weight:600;text-align:center">Days left</th><th style="padding:3px 8px;font-weight:600">Date</th></tr></thead><tbody>'+rows.map(x=>'<tr><td style="'+td+';font-weight:700;text-align:left">'+x[1]+'</td><td style="'+td+';text-align:center;font-weight:700">'+(x[0]==0?'Today':x[0])+'</td><td style="'+td+';color:var(--mut);text-align:left">'+x[2]+'</td></tr>').join('')+'</tbody></table>'}
 function dial(P,now,d){
  const F=P[0].b,D=P[1].b,A=P[2].b,M=P[3].b,I=P[4].b,G=F.map(x=>x+24);
  const L=[['Fajr',F[0],F[2]],['Dhuhr',D[0],D[3]],['Asr',A[0],A[2]],['Maghrib',M[0],M[3]],['Isha',I[1],G[0]]];
