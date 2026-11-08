@@ -24,8 +24,9 @@ h1{font-size:22px;margin:4px 0}
 .chip{font-size:13px;padding:2px 8px;border-radius:99px;color:#111}
 button,input{font:inherit;border-radius:8px;border:1px solid var(--bd);background:var(--card);color:var(--fg);padding:6px 10px}
 input{width:110px}
-main>*:not(#out):not(#geop):not(#wx){display:none}
-#wx{margin-left:auto;text-align:right;white-space:pre-line;font-size:12px;font-weight:600;line-height:1.35}
+main>*:not(#out):not(#geop):not(#wx):not(#alt){display:none}
+#alt{background:var(--card);border:1px solid #d9534f;border-radius:10px;padding:8px 10px;font-size:13px;margin:6px 0;display:none}
+#wx{margin-left:auto;text-align:right;white-space:nowrap;font-size:12px;font-weight:600;line-height:1.35}
 #geop{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:4px 4px;text-align:left;margin:8px -6px!important}
 #loc2{display:flex;align-items:center;gap:6px}
 #dt{text-align:center;font-size:12px;font-weight:600;min-width:0}
@@ -36,6 +37,7 @@ main>*:not(#out):not(#geop):not(#wx){display:none}
 <h1>Prayer time windows</h1>
 <div class="mut" id="loc">Finding your location…</div>
 <p id="geop" style="margin:8px 0"><span id="loc2"><button id="geo" aria-label="Use my location" title="Use my location" style="padding:4px 6px;line-height:0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></button><span id="city" style="font-size:12px;font-weight:600;cursor:pointer;text-decoration:underline dotted;white-space:pre-line;line-height:1.35"></span><select id="pick" style="display:none;font-size:15px;max-width:150px"></select></span><span id="dt"></span><span id="wx"></span></p>
+<div id="alt"></div>
 <div id="warn"></div>
 <div id="out"></div>
 <p class="mut">Methods covered: ISNA (15°/15°), MWL (18°/17°) and Moonsighting Committee Worldwide (seasonal, latitude-adjusted). Asr is shown at 1× and 2× (Hanafi) shadow, Dhuhr and Maghrib include Moonsighting’s small safety minutes, and Isha ends at midnight or dawn. Asr is also discouraged once the sun yellows, which is not shown. This is a planning aid, not a fatwa; follow your local scholar or mosque where they differ.</p>
@@ -80,14 +82,23 @@ function compute(d,lat,lon){
  P.forEach(p=>{for(let i=1;i<p.b.length;i++)p.b[i]=Math.max(p.b[i],p.b[i-1])});
  P.meta=meta;return{P,hl};
 }
-let wxK='',wxT=0;
+let wxK='',wxT=0,wxL='',wxA=[];
+function paintWx(){
+ const el=document.getElementById('wx'),at=document.getElementById('alt');
+ el.innerHTML=(wxA.length?'<div id="atri" role="button" aria-label="Severe weather alert" style="cursor:pointer;line-height:0;margin-bottom:2px"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8L22.4 21H1.6z" fill="#d9534f" stroke="#d9534f" stroke-width="1.5" stroke-linejoin="round"/><rect x="11" y="9" width="2" height="6.2" rx="1" fill="#fff"/><circle cx="12" cy="17.8" r="1.2" fill="#fff"/></svg></div>':'')+wxL;
+ const t=document.getElementById('atri');if(t)t.onclick=()=>{at.style.display=at.style.display==='none'?'block':'none'};
+ if(!wxA.length)at.style.display='none';at.innerHTML=wxA.map(a=>'<b>'+a.e+'</b>'+(a.h?' · '+a.h:'')).join('<br>')
+}
 function loadWx(){
- const el=document.getElementById('wx'),k=place.lat.toFixed(2)+','+place.lon.toFixed(2),n=Date.now();
+ const k=place.lat.toFixed(2)+','+place.lon.toFixed(2),n=Date.now();
  if(k===wxK&&n-wxT<9e5)return;wxK=k;wxT=n;
  fetch('https://api.open-meteo.com/v1/forecast?latitude='+place.lat+'&longitude='+place.lon+'&current=temperature_2m,dew_point_2m&hourly=precipitation_probability&forecast_days=2&timezone=auto').then(r=>r.json()).then(j=>{
   const c=j.current,h=j.hourly;let i=h.time.findIndex(t=>t>c.time.slice(0,13)+':00');i=i<0?h.time.length-1:Math.max(0,i-1);
   const pr=h.precipitation_probability[i];
-  el.textContent='T '+Math.round(c.temperature_2m)+'°C\nDP '+Math.round(c.dew_point_2m)+'°C\nR '+(pr==null?'–':pr+'%')}).catch(()=>{wxK='';el.textContent=''})
+  wxL='<div>'+Math.round(c.temperature_2m)+'°C</div><div>'+Math.round(c.dew_point_2m)+'°C</div><div>'+(pr==null?'–':pr+'%')+'</div>';paintWx()}).catch(()=>{wxK='';wxL='';paintWx()});
+ if(place.lat>17&&place.lat<72&&place.lon<-60)fetch('https://api.weather.gov/alerts/active?point='+place.lat.toFixed(4)+','+place.lon.toFixed(4),{headers:{Accept:'application/geo+json'}}).then(r=>r.json()).then(j=>{
+  wxA=(j.features||[]).map(f=>f.properties).filter(p=>p&&(p.severity==='Severe'||p.severity==='Extreme')).map(p=>{const t=new Date(p.ends||p.expires);return{e:p.event,h:isNaN(t)?'':'until '+t.toLocaleString('en-US',{weekday:'short',hour:'numeric',minute:'2-digit'})}});paintWx()}).catch(()=>{wxA=[];paintWx()});
+ else{wxA=[];paintWx()}
 }
 function calLine(q,cal){try{const o={};new Intl.DateTimeFormat('en-u-ca-'+cal,{day:'numeric',month:'long',year:'numeric'}).formatToParts(q).forEach(x=>o[x.type]=x.value);return '<div style="font-weight:500;color:var(--mut)"><span style="white-space:nowrap">'+o.month+'</span> <span style="white-space:nowrap">'+o.day+', '+o.year+'</span></div>'}catch(e){return ''}}
 function render(){
