@@ -199,7 +199,7 @@ function dial(P,now,d){
  const cdf=x=>{const t=Math.floor(x*3600+1e-6);return t>=600?Math.floor(t/60)+' min':String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0')};
  const dhf=x=>{if(x*3600<=3600)return 'Dhuhr in '+msf(x)+' ('+fmt(m[1])+')';const h=Math.max(1,Math.round(x));return 'Dhuhr in '+h+' hour'+(h==1?'':'s')+' ('+fmt(m[1])+')'};
  let solo=!m[0][0];const hl=wrap(m[0][0],16);let dl=m[0][1]?wrap(m[0][1].replace('{t}',fmt(m[1])).replace('{mf}',P.meta.fL).replace('{mi}',P.meta.iL).replace('{ms}',msf(fix(m[1]-now,24))).replace('{c5}',(x=>{const t=Math.floor(x*3600+1e-6);return t>=300?Math.floor(t/60)+' minutes':String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0')})(fix(m[1]-now,24))).replace('{cd}',cdf(fix(m[1]-now,24))).replace('{dh}',dhf(fix(m[1]-now,24))).replace('{mn}',(x=>x+' minute'+(x==1?'':'s'))(Math.max(1,Math.ceil(fix(m[1]-now,24)*60)))),999):[];
- const iq0=iqamaLine(st,now,gi);if(iq0){solo=false;dl=m[0][0]?[m[0][0]]:[]}
+ const iq0=iqamaLine(st,now,gi);if(iq0){solo=false;dl=[...(m[0][0]?[m[0][0]]:[]),...(gi===2?dl:[])]}
  const mk=[11,12,13].includes(gi),hb=mk?'none':'var(--bg)';
  if(mk)s+=`<circle cx='${C}' cy='${C}' r='${EA-W/2}' fill='rgba(217,83,79,.2)'/>`;
  {const L=EB-W/2-40;
