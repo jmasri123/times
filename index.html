@@ -25,17 +25,17 @@ h1{font-size:22px;margin:4px 0}
 button,input{font:inherit;border-radius:8px;border:1px solid var(--bd);background:var(--card);color:var(--fg);padding:6px 10px}
 input{width:110px}
 main>*:not(#out):not(#geop):not(#wx){display:none}
-#wx{margin-left:auto;text-align:right;white-space:nowrap;font-size:13px;font-weight:600}
-#geop{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:4px 8px;text-align:left}
+#wx{margin-left:auto;text-align:right;white-space:nowrap;font-size:12px;font-weight:600}
+#geop{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:4px 4px;text-align:left;margin:8px -6px!important}
 #loc2{display:flex;align-items:center;gap:6px}
-#dt{text-align:center;font-size:13px;font-weight:600}
+#dt{text-align:center;font-size:12px;font-weight:600;min-width:0}
 .dial>.mut{display:none}
 .dial svg{width:100%;max-width:420px;display:block;margin:8px auto 0}
 .warn{background:var(--card);border:1px solid #e5a823;border-radius:10px;padding:10px;font-size:14px;margin:10px 0}
 </style></head><body><main>
 <h1>Prayer time windows</h1>
 <div class="mut" id="loc">Finding your location…</div>
-<p id="geop" style="margin:8px 0"><span id="loc2"><button id="geo" aria-label="Use my location" title="Use my location" style="padding:4px 6px;line-height:0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></button><span id="city" style="font-size:13px;font-weight:600;cursor:pointer;text-decoration:underline dotted"></span><select id="pick" style="display:none;font-size:15px;max-width:150px"></select></span><span id="dt"></span><span id="wx"></span></p>
+<p id="geop" style="margin:8px 0"><span id="loc2"><button id="geo" aria-label="Use my location" title="Use my location" style="padding:4px 6px;line-height:0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></button><span id="city" style="font-size:12px;font-weight:600;cursor:pointer;text-decoration:underline dotted;white-space:nowrap"></span><select id="pick" style="display:none;font-size:15px;max-width:150px"></select></span><span id="dt"></span><span id="wx"></span></p>
 <div id="warn"></div>
 <div id="out"></div>
 <p class="mut">Methods covered: ISNA (15°/15°), MWL (18°/17°) and Moonsighting Committee Worldwide (seasonal, latitude-adjusted). Asr is shown at 1× and 2× (Hanafi) shadow, Dhuhr and Maghrib include Moonsighting’s small safety minutes, and Isha ends at midnight or dawn. Asr is also discouraged once the sun yellows, which is not shown. This is a planning aid, not a fatwa; follow your local scholar or mosque where they differ.</p>
@@ -89,9 +89,10 @@ function loadWx(){
   const pr=h.precipitation_probability[i];
   el.textContent='T '+Math.round(c.temperature_2m)+'°C · DP '+Math.round(c.dew_point_2m)+'°C · R '+(pr==null?'–':pr+'%')}).catch(()=>{wxK='';el.textContent=''})
 }
+function hijri(q){try{const o={};new Intl.DateTimeFormat('en-u-ca-islamic-umalqura',{day:'numeric',month:'long',year:'numeric'}).formatToParts(q).forEach(x=>o[x.type]=x.value);return '<div style="font-weight:500;color:var(--mut)"><span style="white-space:nowrap">'+o.month+'</span> <span style="white-space:nowrap">'+o.day+', '+o.year+'</span></div>'}catch(e){return ''}}
 function render(){
  loadWx();
- {const q=new Date();document.getElementById('dt').innerHTML='<span style="white-space:nowrap">'+q.toLocaleDateString('en-US',{weekday:'long'})+'</span> <span style="white-space:nowrap">'+q.toLocaleDateString('en-US',{month:'short'})+' '+q.getDate()+', '+q.getFullYear()+'</span>'}
+ {const q=new Date();document.getElementById('dt').innerHTML='<span style="white-space:nowrap">'+q.toLocaleDateString('en-US',{weekday:'long'})+'</span> <span style="white-space:nowrap">'+q.toLocaleDateString('en-US',{month:'short'})+' '+q.getDate()+', '+q.getFullYear()+'</span>'+hijri(q)}
  const d=new Date(),c=compute(d,place.lat,place.lon),out=document.getElementById("out");
  document.getElementById("loc").textContent=(place.sample?"Sample location (allow location access for yours): ":"Your location: ")+place.lat.toFixed(2)+"°, "+place.lon.toFixed(2)+"° · "+d.toLocaleDateString();
  if(!c){out.innerHTML='<div class="warn">At this latitude the sun does not rise or set today, so these times can’t be calculated. Many scholars use the times of the nearest latitude where it does, or of Makkah.</div>';document.getElementById("warn").innerHTML="";return}
