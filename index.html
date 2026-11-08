@@ -192,17 +192,17 @@ function dial(P,now,d){
  const msf=x=>{const t=Math.max(0,Math.floor(x*3600+1e-6));return String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0')};
  const cdf=x=>{const t=Math.floor(x*3600+1e-6);return t>=600?Math.floor(t/60)+' min':String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0')};
  const dhf=x=>{if(x*3600<=3600)return 'Dhuhr in '+msf(x)+' ('+fmt(m[1])+')';const h=Math.max(1,Math.round(x));return 'Dhuhr in '+h+' hour'+(h==1?'':'s')+' ('+fmt(m[1])+')'};
- const solo=!m[0][0],hl=wrap(m[0][0],16),dl=m[0][1]?wrap(m[0][1].replace('{t}',fmt(m[1])).replace('{mf}',P.meta.fL).replace('{mi}',P.meta.iL).replace('{ms}',msf(fix(m[1]-now,24))).replace('{c5}',(x=>{const t=Math.floor(x*3600+1e-6);return t>=300?Math.floor(t/60)+' minutes':String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0')})(fix(m[1]-now,24))).replace('{cd}',cdf(fix(m[1]-now,24))).replace('{dh}',dhf(fix(m[1]-now,24))).replace('{mn}',(x=>x+' minute'+(x==1?'':'s'))(Math.max(1,Math.ceil(fix(m[1]-now,24)*60)))),999):[];
+ let solo=!m[0][0];const hl=wrap(m[0][0],16);let dl=m[0][1]?wrap(m[0][1].replace('{t}',fmt(m[1])).replace('{mf}',P.meta.fL).replace('{mi}',P.meta.iL).replace('{ms}',msf(fix(m[1]-now,24))).replace('{c5}',(x=>{const t=Math.floor(x*3600+1e-6);return t>=300?Math.floor(t/60)+' minutes':String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0')})(fix(m[1]-now,24))).replace('{cd}',cdf(fix(m[1]-now,24))).replace('{dh}',dhf(fix(m[1]-now,24))).replace('{mn}',(x=>x+' minute'+(x==1?'':'s'))(Math.max(1,Math.ceil(fix(m[1]-now,24)*60)))),999):[];
+ const iq0=iqamaLine(st,now,gi);if(iq0){solo=false;dl=m[0][0]?[m[0][0]]:[]}
  const mk=[11,12,13].includes(gi),hb=mk?'none':'var(--bg)';
  if(mk)s+=`<circle cx='${C}' cy='${C}' r='${EA-W/2}' fill='rgba(217,83,79,.2)'/>`;
  {const L=EB-W/2-40;
   s+=`<g transform='translate(${C} ${C-40})' stroke-linejoin='round'><path d='M0 14L-4.5 -16L0 ${-L}L4.5 -16Z' fill='none' stroke='#fff' stroke-width='3.2'/><path d='M0 14L-4.5 -16L0 ${-L}Z' fill='#f3d77a' stroke='#4a3500' stroke-width='.6'/><path d='M0 14L4.5 -16L0 ${-L}Z' fill='#b8860b' stroke='#4a3500' stroke-width='.6'/><circle r='5.5' fill='#d4a62a' stroke='#4a3500' stroke-width='1'/><circle r='1.8' fill='#4a3500'/></g>`}
- const hs=m[0][0],hf=Math.min(26,150/(hs.length*.58));
+ const hs=iq0||m[0][0],hf=Math.min(26,150/(hs.length*.58));
  if(!solo)s+=`<text x='${C}' y='${C}' text-anchor='middle' dominant-baseline='central' font-size='${f(hf)}' font-weight='700' fill='var(--fg)' stroke='${hb}' stroke-width='4' paint-order='stroke'>${hs}</text>`;
  let y=solo?C-(dl.length-1)*11+6:C+30;
  dl.forEach(t=>{s+=`<text x='${C}' y='${f(y)}' text-anchor='middle' font-size='${f(Math.min(solo?18:16,192/(t.length*.55)))}' fill='${solo?'var(--fg)':'var(--mut)'}' font-weight='${solo?600:400}' stroke='${hb}' stroke-width='4' paint-order='stroke'>${t}</text>`;y+=solo?22:17});
  if(gi===13)s+=`<text x='${C}' y='${f(y)}' text-anchor='middle' font-size='14' font-weight='700' fill='var(--no)' stroke='var(--bg)' stroke-width='4' paint-order='stroke'>Nafila Makruh</text>`;
- {const iql=iqamaLine(st,now,gi);if(iql){const yy=y+(gi===13?17:0);s+=`<text x='${C}' y='${f(yy)}' text-anchor='middle' font-size='14' font-weight='600' fill='var(--mut)' stroke='${hb}' stroke-width='4' paint-order='stroke'>${iql}</text>`}}
  {const AR=[[F[0],F[2]],[D[0],D[3]],[A[0],A[2]],[M[0],M[3]],[I[0],G[0]]];
   AR.forEach((q,i)=>{const r=147+i*6,dh=7/r/(2*Math.PI)*24*15/sc(q[1]),e2=q[1]-dh,p1=pt(q[0],r),p2=pt(e2,r),sp=e2-q[0];
    if(sp>0){s+=`<path d='M${f(p1[0])} ${f(p1[1])}A${EA+r-R} ${EB+r-R} 0 ${big(q[0],e2)} 1 ${f(p2[0])} ${f(p2[1])}' fill='none' stroke='${i==cur?"var(--fg)":"#9d9b94"}' stroke-width='2' opacity='${i==cur?1:.9}'/>`;
