@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prayer Time Windows</title>
+<style>
+:root{--bg:#faf8f4;--fg:#1d1d1b;--mut:#6b6b66;--card:#fff;--bd:#e4e0d8;--no:#d9534f;--some:#a8dcb9;--all:#2e9d5b;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141412;--fg:#f1efe9;--mut:#a09d94;--card:#1f1f1c;--bd:#33332e;--no:#e0645f;--some:#8fd4a9;--all:#3fb872;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#141412;--fg:#f1efe9;--mut:#a09d94;--card:#1f1f1c;--bd:#33332e;--no:#e0645f;--some:#8fd4a9;--all:#3fb872;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:640px;margin:0 auto;padding:16px}
+h1{font-size:22px;margin:4px 0}
+.mut{color:var(--mut);font-size:14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin:12px 0}
+.card h2{margin:0 0 8px;font-size:18px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.safe{font-size:15px;font-weight:600;color:var(--all)}
+.bar{position:relative;display:flex;height:22px;border-radius:6px;overflow:hidden;margin:12px 0 10px}
+.bar div{height:100%}
+.now{position:absolute;top:-3px;bottom:-3px;width:3px;background:var(--fg);border-radius:2px}
+.row{display:flex;gap:8px;font-size:14px;margin:3px 0;align-items:flex-start}
+.dot{flex:none;width:10px;height:10px;border-radius:3px;margin-top:6px}
+.k-no{background:var(--no)}.k-some{background:var(--some)}.k-all{background:var(--all)}
+.row b{white-space:nowrap}
+.chip{font-size:13px;padding:2px 8px;border-radius:99px;color:#111}
+button,input{font:inherit;border-radius:8px;border:1px solid var(--bd);background:var(--card);color:var(--fg);padding:6px 10px}
+input{width:110px}
+main>*:not(#out):not(#geop):not(#wx){display:none}
+#wx{text-align:left;font-size:14px;font-weight:600;padding:2px 4px;min-height:20px}
+#geop{text-align:center}
+.dial>.mut{display:none}
+.dial svg{width:100%;max-width:420px;display:block;margin:8px auto 0}
+.warn{background:var(--card);border:1px solid #e5a823;border-radius:10px;padding:10px;font-size:14px;margin:10px 0}
+</style></head><body><main>
+<h1>Prayer time windows</h1>
+<div class="mut" id="loc">Finding your location…</div>
+<div id="wx"></div>
+<p id="geop" style="margin:8px 0"><span id="city" style="margin-right:10px;font-weight:600;cursor:pointer;text-decoration:underline dotted"></span><select id="pick" style="display:none;margin-right:8px;font-size:15px;max-width:180px"></select><button id="geo">Use my location</button></p>
+<div id="warn"></div>
+<div id="out"></div>
+<p class="mut">Methods covered: ISNA (15°/15°), MWL (18°/17°) and Moonsighting Committee Worldwide (seasonal, latitude-adjusted). Asr is shown at 1× and 2× (Hanafi) shadow, Dhuhr and Maghrib include Moonsighting’s small safety minutes, and Isha ends at midnight or dawn. Asr is also discouraged once the sun yellows, which is not shown. This is a planning aid, not a fatwa; follow your local scholar or mosque where they differ.</p>
+</main>
+<script>
+const R=Math.PI/180,sin=x=>Math.sin(x*R),cos=x=>Math.cos(x*R),tan=x=>Math.tan(x*R);
+const fix=(a,b)=>a-b*Math.floor(a/b);
+let place={lat:28.54,lon:-81.38,sample:true};
+function sun(d,lat,lon){
+ const noonD=new Date(d.getFullYear(),d.getMonth(),d.getDate(),12),tz=-noonD.getTimezoneOffset()/60;
+ const D=Date.UTC(d.getFullYear(),d.getMonth(),d.getDate(),12)/864e5+2440587.5-2451545;
+ const g=fix(357.529+.98560028*D,360),q=fix(280.459+.98564736*D,360);
+ const L=fix(q+1.915*sin(g)+.02*sin(2*g),360),e=23.439-3.6e-7*D;
+ const RA=fix(Math.atan2(cos(e)*sin(L),cos(L))/R/15,24);
+ let eq=q/15-RA;if(eq>12)eq-=24;if(eq<-12)eq+=24;
+ return{noon:12+tz-lon/15-eq,dec:Math.asin(sin(e)*sin(L))/R,lat};
+}
+const ha=(s,alt)=>{const c=(sin(alt)-sin(s.lat)*sin(s.dec))/(cos(s.lat)*cos(s.dec));return Math.abs(c)>1?null:Math.acos(c)/R/15};
+function fmt(x){x=fix(x,24);let h=Math.floor(x),m=Math.round((x-h)*60);if(m==60){m=0;h=(h+1)%24}
+ return((h%12)||12)+":"+String(m).padStart(2,"0")+(h<12?" AM":" PM")}
+function compute(d,lat,lon){
+ const s=sun(d,lat,lon),hs=ha(s,-.833);if(hs==null)return null;
+ const rise=s.noon-hs,set=s.noon+hs,night=24-2*hs;let hl=false;
+ const asr=t=>s.noon+ha(s,Math.atan(1/(t+tan(Math.abs(s.lat-s.dec))))/R);
+ const tw=(a,dir)=>{const h=ha(s,-a);if(h==null){hl=true;const f=a/60*night;return dir<0?rise-f:set+f}return s.noon+dir*h};
+ const dn=Math.floor((Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())-Date.UTC(d.getFullYear(),0,0))/864e5),yr=d.getFullYear(),leap=yr%4==0&&(yr%100!=0||yr%400==0),diy=leap?366:365;
+ let dys=lat>=0?dn+10:dn-(leap?173:172);if(lat>=0&&dys>=diy)dys-=diy;if(lat<0&&dys<0)dys+=diy;
+ const al=Math.abs(lat),sea=k=>{const[a,b,c,e]=k.map(v=>75+v/55*al);return dys<91?a+(b-a)/91*dys:dys<137?b+(c-b)/46*(dys-91):dys<183?c+(e-c)/46*(dys-137):dys<229?e+(c-e)/46*(dys-183):dys<275?c+(b-c)/46*(dys-229):b+(a-b)/91*(dys-275)};
+ const mid=set+night/2,sF=rise-sea([28.65,19.44,32.74,48.10])/60,sI=set+sea([25.60,2.050,-9.210,6.140])/60,hi=Math.abs(lat)>55,mcF=hi?Math.max(rise-night/7,sF):Math.max(tw(18,-1),sF),mcI=hi?Math.min(set+night/7,sI):Math.min(tw(18,1),sI);
+ const MA=[[35.95,-5.9],[35.2,-2.2],[34.7,-1.75],[32.6,-1.25],[32.1,-1.25],[31.6,-2.2],[30.6,-3.8],[29.8,-5.6],[29.0,-7.5],[28.0,-8.7],[27.67,-8.67],[26.0,-8.67],[25.0,-12.0],[21.35,-13.15],[21.35,-17.05],[23.7,-15.9],[26.1,-14.4],[27.67,-13.2],[28.7,-11.2],[30.4,-9.7],[32.0,-9.3],[33.6,-7.7],[35.0,-6.5]];
+ const inMA=(()=>{let c=false;for(let i=0,j=MA.length-1;i<MA.length;j=i++){const[a,b]=MA[i],[e,f]=MA[j];if((b>lon)!=(f>lon)&&lat<(e-a)*(lon-b)/(f-b)+a)c=!c}return c})();
+ const NM=inMA?['19.1°']:['15°','18°'],fT=inMA?[tw(19.1,-1)]:[tw(15,-1),tw(18,-1)],iT=inMA?[tw(17,1)]:[tw(15,1),tw(18,1)];
+ const fE=Math.min(...fT),fL=Math.max(...fT),iE=Math.min(...iT),iL=Math.max(...iT);
+ const nm=(T,v)=>NM.filter((x,i)=>Math.abs(T[i]-v)<1e-4).join('/'),meta={fL:nm(fT,fL),iL:nm(iT,iL)};
+ const aS=asr(1),aH=inMA?aS:asr(2),nz=s.noon;
+ const P=[
+ {n:"Fajr",b:[fE,fL,rise],k:["no","some","all","no"],t:["Too early","Valid per some methods (ISNA, MWL and Moonsighting differ here)","Valid by all methods","Time over (sunrise)"]},
+ {n:"Dhuhr",b:[s.noon,nz,aS,aH],k:["no","some","all","some","no"],t:["Before noon","Valid by most; some wait a few minutes after noon","Valid by all methods","Valid per Hanafi view only (their Asr starts later)","Time over"]},
+ {n:"Asr",b:[aS,aH,set],k:["no","some","all","no"],t:["Too early","Valid per majority; Hanafi view: not yet","Valid by all methods","Time over (sunset)"]},
+ {n:"Maghrib",b:[set,set,iE,iL],k:["no","some","all","some","no"],t:["Before sunset","Valid per most; Moonsighting adds a few minutes after sunset","Valid by all methods","Valid per some; others say twilight has ended","Time over"]},
+ {n:"Isha",b:[iE,iL,mid,Math.max(mid,fL)],k:["no","some","all","some","no"],t:["Too early","Valid per some methods; others say Isha hasn’t begun","Valid by all methods","Valid per some until dawn (discouraged after midnight)","Time over (dawn)"]}];
+ P.forEach(p=>{for(let i=1;i<p.b.length;i++)p.b[i]=Math.max(p.b[i],p.b[i-1])});
+ P.meta=meta;return{P,hl};
+}
+let wxK='',wxT=0;
+function loadWx(){
+ const el=document.getElementById('wx'),k=place.lat.toFixed(2)+','+place.lon.toFixed(2),n=Date.now();
+ if(k===wxK&&n-wxT<9e5)return;wxK=k;wxT=n;
+ fetch('https://api.open-meteo.com/v1/forecast?latitude='+place.lat+'&longitude='+place.lon+'&current=temperature_2m,dew_point_2m&hourly=precipitation_probability&forecast_days=2&timezone=auto').then(r=>r.json()).then(j=>{
+  const c=j.current,h=j.hourly;let i=h.time.findIndex(t=>t>c.time.slice(0,13)+':00');i=i<0?h.time.length-1:Math.max(0,i-1);
+  const pr=h.precipitation_probability[i];
+  el.innerHTML=Math.round(c.temperature_2m)+'°C <span style="font-weight:400;color:var(--mut)">· dew point</span> '+Math.round(c.dew_point_2m)+'°C <span style="font-weight:400;color:var(--mut)">· rain</span> '+(pr==null?'–':pr+'%')}).catch(()=>{wxK='';el.textContent=''})
+}
+function render(){
+ loadWx();
+ const d=new Date(),c=compute(d,place.lat,place.lon),out=document.getElementById("out");
+ document.getElementById("loc").textContent=(place.sample?"Sample location (allow location access for yours): ":"Your location: ")+place.lat.toFixed(2)+"°, "+place.lon.toFixed(2)+"° · "+d.toLocaleDateString();
+ if(!c){out.innerHTML='<div class="warn">At this latitude the sun does not rise or set today, so these times can’t be calculated. Many scholars use the times of the nearest latitude where it does, or of Makkah.</div>';document.getElementById("warn").innerHTML="";return}
+ document.getElementById("warn").innerHTML=c.hl?'<div class="warn">At your latitude the sky doesn’t get fully dark at this time of year, so some angles can’t be reached. Fajr and Isha use the angle-based night fraction as a fallback, and scholars differ on high-latitude rules, so check with your local authority.</div>':"";
+ const now=d.getHours()+d.getMinutes()/60+d.getSeconds()/3600;let html="";
+ for(const p of c.P){
+  const b=p.b,lo0=b[0],hi0=b[b.length-1],pad=Math.max(.25,.12*(hi0-lo0)),lo=lo0-pad,hi=hi0+pad,W=hi-lo;
+  const edges=[lo,...b,hi];let segs="",rows="",safe="";
+  for(let i=0;i<p.k.length;i++){
+   const a=edges[i],z=edges[i+1],w=(z-a)/W*100;segs+=`<div class="k-${p.k[i]}" style="width:${w}%"></div>`;
+   const rng=i==0?"until "+fmt(b[0]):i==p.k.length-1?"after "+fmt(b[b.length-1]):fmt(b[i-1])+" – "+fmt(b[i]);
+   if(i>0&&i<p.k.length-1&&b[i]-b[i-1]<.01)continue;
+   rows+=`<div class="row"><span class="dot k-${p.k[i]}"></span><span><b>${rng}</b> · ${p.t[i]}</span></div>`;
+   if(p.k[i]=="all")safe=fmt(b[i-1])+" – "+fmt(b[i]);
+  }
+  let nx=[now,now+24].find(v=>v>=lo&&v<=hi),chip="";
+  if(nx!=null){let zi=0;while(zi<b.length&&nx>=b[zi])zi++;const k=p.k[zi];
+   chip=`<span class="chip k-${k}">now: ${k=="all"?"valid by all":k=="some"?"valid per some":"not valid"}</span>`}
+  const marker=nx!=null?`<div class="now" style="left:${(nx-lo)/W*100}%"></div>`:"";
+  html+=`<div class="card"><h2><span>${p.n} ${chip}</span><span class="safe">${safe?"All methods: "+safe:"No window all methods share"}</span></h2>${rows}</div>`;
+ }
+ out.innerHTML=dial(c.P,now,d);
+}
+const IQ={"11-01":[360,780,975,1066,1170],"11-02":[360,780,975,1066,1170],"11-03":[360,780,975,1065,1170],"11-04":[360,780,975,1064,1170],"11-05":[360,780,975,1063,1170],"11-06":[360,780,975,1063,1170],"11-07":[360,780,975,1062,1170],"11-08":[360,780,975,1061,1170],"11-09":[360,780,975,1061,1170],"11-10":[360,780,975,1060,1170],"11-11":[360,780,975,1060,1170],"11-12":[360,780,975,1059,1170],"11-13":[360,780,975,1059,1170],"11-14":[360,780,975,1058,1170],"11-15":[360,780,975,1058,1170],"11-16":[360,780,975,1057,1170],"11-17":[360,780,975,1057,1170],"11-18":[375,780,975,1057,1170],"11-19":[375,780,975,1056,1170],"11-20":[375,780,975,1056,1170],"11-21":[375,780,975,1056,1170],"11-22":[375,780,975,1056,1170],"11-23":[375,780,975,1055,1170],"11-24":[375,780,975,1055,1170],"11-25":[375,780,975,1055,1170],"11-26":[375,780,975,1055,1170],"11-27":[375,780,975,1055,1170],"11-28":[375,780,975,1055,1170],"11-29":[375,780,975,1054,1170],"11-30":[375,780,975,1054,1170],"12-01":[375,780,975,1054,1170],"12-02":[375,780,975,1054,1170],"12-03":[375,780,975,1054,1170],"12-04":[375,780,975,1054,1170],"12-05":[375,780,975,1055,1170],"12-06":[375,780,975,1055,1170],"12-07":[390,780,975,1055,1170],"12-08":[390,780,975,1055,1170],"12-09":[390,780,975,1055,1170],"12-10":[390,780,975,1055,1170],"12-11":[390,780,975,1056,1170],"12-12":[390,780,975,1056,1170],"12-13":[390,780,975,1056,1170],"12-14":[390,780,975,1057,1170],"12-15":[390,780,975,1057,1170],"12-16":[390,780,975,1057,1170],"12-17":[390,780,975,1058,1170],"12-18":[390,780,975,1058,1170],"12-19":[390,780,975,1059,1170],"12-20":[390,780,975,1059,1170],"12-21":[390,780,975,1060,1170],"12-22":[390,780,975,1060,1170],"12-23":[390,780,975,1061,1170],"12-24":[390,780,975,1061,1170],"12-25":[390,780,975,1062,1170],"12-26":[390,780,975,1062,1170],"12-27":[390,780,975,1063,1170],"12-28":[390,780,975,1064,1170],"12-29":[390,780,975,1064,1170],"12-30":[390,780,975,1065,1170],"12-31":[390,780,975,1066,1170],"01-01":[390,780,975,1066,1170],"01-02":[390,780,975,1067,1170],"01-03":[390,780,975,1068,1170],"01-04":[390,780,990,1069,1170],"01-05":[390,780,990,1069,1170],"01-06":[390,780,990,1070,1170],"01-07":[390,780,990,1071,1170],"01-08":[390,780,990,1072,1170],"01-09":[390,780,990,1072,1170],"01-10":[390,780,990,1073,1170],"01-11":[390,780,990,1074,1170],"01-12":[390,780,990,1075,1170],"01-13":[390,780,990,1076,1170],"01-14":[390,780,990,1076,1170],"01-15":[390,780,990,1077,1170],"01-16":[390,780,990,1078,1170],"01-17":[390,780,990,1079,1170],"01-18":[390,780,990,1080,1170],"01-19":[390,780,990,1081,1170],"01-20":[390,780,990,1081,1170],"01-21":[390,780,990,1082,1170],"01-22":[390,780,990,1083,1170],"01-23":[390,780,1005,1084,1170],"01-24":[390,780,1005,1085,1170],"01-25":[390,780,1005,1086,1170],"01-26":[390,780,1005,1086,1170],"01-27":[390,780,1005,1087,1185],"01-28":[390,780,1005,1088,1185],"01-29":[390,780,1005,1089,1185],"01-30":[390,780,1005,1090,1185],"01-31":[390,780,1005,1090,1185],"02-01":[390,780,1005,1091,1185],"02-02":[390,780,1005,1092,1185],"02-03":[390,780,1005,1093,1185],"02-04":[390,780,1005,1094,1185],"02-05":[390,780,1005,1095,1185],"02-06":[390,780,1005,1095,1185],"02-07":[390,780,1005,1096,1185],"02-08":[390,780,1005,1097,1185],"02-09":[390,780,1020,1098,1185],"02-10":[390,780,1020,1098,1185],"02-11":[390,780,1020,1099,1185],"02-12":[390,780,1020,1100,1185],"02-13":[375,780,1020,1101,1185],"02-14":[375,780,1020,1101,1185],"02-15":[375,780,1020,1102,1185],"02-16":[375,780,1020,1103,1185],"02-17":[375,780,1020,1104,1185],"02-18":[375,780,1020,1104,1185],"02-19":[375,780,1020,1105,1185],"02-20":[375,780,1020,1106,1200],"02-21":[375,780,1020,1106,1200],"02-22":[375,780,1020,1107,1200],"02-23":[375,780,1020,1108,1200],"02-24":[375,780,1020,1108,1200],"02-25":[375,780,1020,1109,1200],"02-26":[375,780,1020,1110,1200],"02-27":[375,780,1020,1110,1200],"02-28":[375,780,1020,1111,1200],"03-01":[360,780,1020,1112,1200],"03-02":[360,780,1020,1112,1200],"03-03":[360,780,1020,1113,1200],"03-04":[360,780,1020,1114,1200],"03-05":[360,780,1020,1114,1200],"03-06":[360,780,1020,1115,1200],"03-07":[360,780,1020,1115,1200],"03-08":[390,825,1095,1176,1275],"03-09":[390,825,1095,1177,1275],"03-10":[390,825,1095,1177,1275],"03-11":[390,825,1095,1178,1275],"03-12":[390,825,1095,1178,1275],"03-13":[390,825,1095,1179,1275],"03-14":[390,825,1095,1180,1275],"03-15":[390,825,1095,1180,1275],"03-16":[390,825,1095,1181,1275],"03-17":[390,825,1095,1181,1275],"03-18":[390,825,1095,1182,1275],"03-19":[390,825,1095,1182,1275],"03-20":[390,825,1095,1183,1275],"03-21":[390,825,1095,1184,1275],"03-22":[390,825,1095,1184,1275],"03-23":[390,825,1095,1185,1275],"03-24":[390,825,1095,1185,1275],"03-25":[390,825,1095,1186,1275],"03-26":[390,825,1095,1186,1275],"03-27":[390,825,1095,1187,1275],"03-28":[390,825,1095,1187,1275],"03-29":[390,825,1095,1188,1275],"03-30":[390,825,1095,1189,1275],"03-31":[390,825,1095,1189,1275]};
+function iqamaLine(st,now,gi){
+ const n=new Date(),dy=(place.lat-28.40)*111,dx=(place.lon+81.52)*111*Math.cos(place.lat*Math.PI/180);
+ if(Math.hypot(dx,dy)>50)return '';
+ const k=String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0'),A=IQ[k];if(!A)return '';
+ for(let i=0;i<5;i++){const iq=A[i]/60,s0=st[i];
+  if(now>=s0&&now<iq+7/60){if(now>=iq)return 'Jama ongoing';
+   const t=Math.max(0,Math.floor((iq-now)*3600+1e-6)),cd=t>=3600?Math.floor(t/3600)+'h '+String(Math.floor(t%3600/60)).padStart(2,'0')+'m':t>=600?Math.floor(t/60)+' min':String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0');
+   return 'Iqama in '+cd}}
+ return ''}
+function countdowns(){
+ const n=new Date(),b=new Date(n.getFullYear(),n.getMonth(),n.getDate(),12),ev=[],ds=d=>d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+ [['DS',0,29],['PS',1,5]].forEach(e=>{let d=new Date(b.getFullYear(),e[1],e[2],12);if(d<b)d=new Date(b.getFullYear()+1,e[1],e[2],12);ev.push([Math.round((d-b)/864e5),e[0],ds(d)])});
+ try{const fm=new Intl.DateTimeFormat('en-u-ca-islamic-umalqura',{day:'numeric',month:'numeric',year:'numeric'}),hp=d=>{const o={};fm.formatToParts(d).forEach(x=>o[x.type]=parseInt(x.value));return o},t=hp(b);
+  if(t.month==9)ev.push([0,'Ramadan','Day '+t.day]);else for(let k=1;k<=400;k++){const d=new Date(b.getTime()+k*864e5),h=hp(d);if(h.month==9&&h.day==1){ev.push([k,'Ramadan','≈ '+ds(d)]);break}}}catch(e){}
+ ev.sort((a,c)=>a[0]-c[0]);
+ const td='padding:7px 10px;border-top:1px solid var(--bd)';
+ return '<table style="margin:4px auto 0;border-collapse:collapse;font-size:16px"><thead><tr style="color:var(--mut);font-size:13px;text-align:left"><th style="padding:4px 10px;font-weight:600">Event</th><th style="padding:4px 10px;font-weight:600;text-align:center">Days left</th><th style="padding:4px 10px;font-weight:600">Date</th></tr></thead><tbody>'+ev.map(x=>'<tr><td style="'+td+';font-weight:700">'+x[1]+'</td><td style="'+td+';text-align:center;font-weight:700">'+(x[0]==0?'Today':x[0])+'</td><td style="'+td+';color:var(--mut)">'+x[2]+'</td></tr>').join('')+'</tbody></table>'}
+function dial(P,now,d){
+ const F=P[0].b,D=P[1].b,A=P[2].b,M=P[3].b,I=P[4].b,G=F.map(x=>x+24);
+ const L=[['Fajr',F[0],F[2]],['Dhuhr',D[0],D[3]],['Asr',A[0],A[2]],['Maghrib',M[0],M[3]],['Isha',I[1],G[0]]];
+ const st=[F[0],D[0],A[0],M[0],I[0]];
+ let cur=0,best=99;st.forEach((x,i)=>{const dl=fix(now-x,24);if(dl<best){best=dl;cur=i}});
+ if(fix(now-F[2],24)<fix(D[0]-F[2],24))cur=1;
+ const off=now;
+ const ZK=3,ZS=15*ZK,ZR=(180-ZS)/11,sc=h=>{const d=Math.abs(fix(h-off+12,24)-12);return d<=1?ZS:ZR},ang=h=>{const d=fix(h-off+12,24)-12,u=Math.abs(d);return d<0?-(u<=1?u*ZS:ZS+(u-1)*ZR):(u<=1?u*ZS:ZS+(u-1)*ZR)},big=(a,z)=>fix(ang(z)-ang(a),360)>180?1:0;
+ const C=250,R=120,W=45,EA=125,EB=125;const f=v=>v.toFixed(1),pt=(h,r)=>{const d=r-R,a=EA+d,b=EB+d,t=ang(h)*Math.PI/180,sn=Math.sin(t),cs=Math.cos(t),rr=1/Math.sqrt(sn*sn/(a*a)+cs*cs/(b*b));return[C+rr*sn,C-rr*cs]},tg=(h,r)=>{const p=pt(h-.02,r),q=pt(h+.02,r);return Math.atan2(q[1]-p[1],q[0]-p[0])/Math.PI*180},lab=(h,txt,fs,col,rr=177)=>{const t=pt(h,rr),xr=t[0]-C,an=xr>30?'start':xr<-30?'end':'middle',x0=t[0]+(an=='start'?4:an=='end'?-4:0),w=txt.length*fs*.56,x=an=='start'?Math.min(x0,464-w):an=='end'?Math.max(x0,36+w):Math.min(Math.max(x0,36+w/2),464-w/2),y=t[1]+(an=='middle'?(t[1]<C?-9:9):0);return `<text x='${f(x)}' y='${f(y)}' text-anchor='${an}' dominant-baseline='central' font-size='${fs}' font-weight='700' fill='${col}' stroke='var(--bg)' stroke-width='4' paint-order='stroke'>${txt}</text>`},nrm=(h,r)=>{const p=pt(h-.02,r),q=pt(h+.02,r),dx=q[0]-p[0],dy=q[1]-p[1],n=Math.hypot(dx,dy);return[dy/n,-dx/n]};
+ const arc=(a,z,col)=>{const sp=Math.min(z-a,23.99);if(sp<.005)return'';const p1=pt(a,R),p2=pt(a+sp,R);return `<path d='M${f(p1[0])} ${f(p1[1])}A${EA} ${EB} 0 ${big(a,a+sp)} 1 ${f(p2[0])} ${f(p2[1])}' fill='none' stroke='var(--${col})' stroke-width='${W}'/>`};
+ const segs=[[D[0],D[1],'some'],[D[1],D[2],'all'],[D[2],D[3],'some'],[A[1],A[2],'all'],[M[0],M[1],'some'],[M[1],M[2],'all'],[M[2],M[3],'some'],[I[1],G[0],'all'],[G[0],G[0],'some'],[G[0],G[1],'some'],[G[1],G[2],'all'],[D[0]-7/60,D[0],'no'],[F[2],F[2]+15/60,'no'],[M[0]-1/60,M[0],'no']];
+  let s=`<ellipse cx='${C}' cy='${C}' rx='${EA}' ry='${EB}' fill='none' stroke='var(--bd)' stroke-width='${W+3}'/><ellipse cx='${C}' cy='${C}' rx='${EA}' ry='${EB}' fill='none' stroke='#fff' stroke-width='${W}'/>`;
+ segs.forEach(g=>{s+=arc(g[0],g[1],g[2])});
+ 
+ L.forEach((l,i)=>{if([0,1,2,3,4].includes(i))return;
+  const m=(l[1]+l[2])/2,t=pt(m,190),sx=Math.sin((m-off)/24*2*Math.PI),an=sx>.3?'start':sx<-.3?'end':'middle';
+  s+=`<text x='${f(t[0])}' y='${f(t[1])}' text-anchor='${an}' dominant-baseline='central' font-size='${i==cur?19:16}' font-weight='${i==cur?800:600}' fill='var(--fg)'>${l[0]}</text>`});
+ const MSG=[['Dhuhr starting','MCW time starts in {ms} ({t})'],['Dhuhr Time',''],['Asr Time','Hanafi? wait {mn}'],['Asr Time',''],['Maghrib starting','MCW time starts in {ms} ({t})'],['Maghrib Time',''],['Time is closing','{mi} Isha in {ms} ({t})'],['Isha Time',''],['Isha closing','Valid per some methods until {t}.'],['Fajr Time','{mf} starts in {ms} ({t})'],['Fajr Time',''],['Makruh','{cd} until Dhuhr'],['Makruh','Duha Time starts in {ms}'],['Asr Time','{cd} until Maghrib']];
+ const hit=(a,z)=>[now,now+24].some(v=>v>=a&&v<z);
+ let m=null,gi=-1;[13,11,12,0,1,2,3,4,5,6,7,8,9,10].forEach(i=>{const g=segs[i];if(!m&&hit(g[0],g[1])){m=[MSG[i],g[1]];gi=i}});
+ const CDT={1:'Asr',3:'Maghrib',5:'Isha',7:'Fajr',10:'sunrise'};
+ const CDS={1:D[0],3:A[0],5:M[0],7:I[0],10:G[0]},CDE={3:M[0]};
+ if(gi in CDT){const g=segs[gi],T=CDE[gi]||g[1];if(fix(T-now,24)<=(T-CDS[gi])/3)m=[[m[0][0],'{cd} until '+CDT[gi]],T]}
+ {const T1=M[0]+(G[0]-M[0])/3;if(m&&m[0][0]&&!m[0][1]&&hit(M[0],T1))m=[[m[0][0],'Best Time'],m[1]]}
+ {const Q0=M[0]+(G[0]-M[0])*2/3;if(hit(Q0,G[0]))m=[['Qiyam Time',fix(G[0]-now,24)<=.5?'{c5} until Fajr':'The Last Third'],G[0]]}
+ if(!m&&hit(F[2],D[0]))m=[['Duha Time','{dh}'],D[0]];
+ if(!m)m=[['Now: '+L[cur][0],''],0];
+ const wrap=(t,n)=>{const l=[];let c='';t.split(' ').forEach(x=>{if((c+' '+x).trim().length>n){l.push(c);c=x}else c=(c+' '+x).trim()});if(c)l.push(c);return l};
+ const msf=x=>{const t=Math.max(0,Math.floor(x*3600+1e-6));return String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0')};
+ const cdf=x=>{const t=Math.floor(x*3600+1e-6);return t>=600?Math.floor(t/60)+' min':String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0')};
+ const dhf=x=>{if(x*3600<=3600)return 'Dhuhr in '+msf(x)+' ('+fmt(m[1])+')';const h=Math.max(1,Math.round(x));return 'Dhuhr in '+h+' hour'+(h==1?'':'s')+' ('+fmt(m[1])+')'};
+ const solo=!m[0][0],hl=wrap(m[0][0],16),dl=m[0][1]?wrap(m[0][1].replace('{t}',fmt(m[1])).replace('{mf}',P.meta.fL).replace('{mi}',P.meta.iL).replace('{ms}',msf(fix(m[1]-now,24))).replace('{c5}',(x=>{const t=Math.floor(x*3600+1e-6);return t>=300?Math.floor(t/60)+' minutes':String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0')})(fix(m[1]-now,24))).replace('{cd}',cdf(fix(m[1]-now,24))).replace('{dh}',dhf(fix(m[1]-now,24))).replace('{mn}',(x=>x+' minute'+(x==1?'':'s'))(Math.max(1,Math.ceil(fix(m[1]-now,24)*60)))),999):[];
+ const mk=[11,12,13].includes(gi),hb=mk?'none':'var(--bg)';
+ if(mk)s+=`<circle cx='${C}' cy='${C}' r='${EA-W/2}' fill='rgba(217,83,79,.2)'/>`;
+ {const L=EB-W/2-40;
+  s+=`<g transform='translate(${C} ${C-40})' stroke-linejoin='round'><path d='M0 14L-4.5 -16L0 ${-L}L4.5 -16Z' fill='none' stroke='#fff' stroke-width='3.2'/><path d='M0 14L-4.5 -16L0 ${-L}Z' fill='#f3d77a' stroke='#4a3500' stroke-width='.6'/><path d='M0 14L4.5 -16L0 ${-L}Z' fill='#b8860b' stroke='#4a3500' stroke-width='.6'/><circle r='5.5' fill='#d4a62a' stroke='#4a3500' stroke-width='1'/><circle r='1.8' fill='#4a3500'/></g>`}
+ const hs=m[0][0],hf=Math.min(26,150/(hs.length*.58));
+ if(!solo)s+=`<text x='${C}' y='${C}' text-anchor='middle' dominant-baseline='central' font-size='${f(hf)}' font-weight='700' fill='var(--fg)' stroke='${hb}' stroke-width='4' paint-order='stroke'>${hs}</text>`;
+ let y=solo?C-(dl.length-1)*11+6:C+30;
+ dl.forEach(t=>{s+=`<text x='${C}' y='${f(y)}' text-anchor='middle' font-size='${f(Math.min(solo?18:16,192/(t.length*.55)))}' fill='${solo?'var(--fg)':'var(--mut)'}' font-weight='${solo?600:400}' stroke='${hb}' stroke-width='4' paint-order='stroke'>${t}</text>`;y+=solo?22:17});
+ if(gi===13)s+=`<text x='${C}' y='${f(y)}' text-anchor='middle' font-size='14' font-weight='700' fill='var(--no)' stroke='var(--bg)' stroke-width='4' paint-order='stroke'>Nafila Makruh</text>`;
+ {const iql=iqamaLine(st,now,gi);if(iql){const yy=y+(gi===13?17:0);s+=`<text x='${C}' y='${f(yy)}' text-anchor='middle' font-size='14' font-weight='600' fill='var(--mut)' stroke='${hb}' stroke-width='4' paint-order='stroke'>${iql}</text>`}}
+ {const AR=[[F[0],F[2]],[D[0],D[3]],[A[0],A[2]],[M[0],M[3]],[I[0],G[0]]];
+  AR.forEach((q,i)=>{const r=147+i*6,dh=7/r/(2*Math.PI)*24*15/sc(q[1]),e2=q[1]-dh,p1=pt(q[0],r),p2=pt(e2,r),sp=e2-q[0];
+   if(sp>0){s+=`<path d='M${f(p1[0])} ${f(p1[1])}A${EA+r-R} ${EB+r-R} 0 ${big(q[0],e2)} 1 ${f(p2[0])} ${f(p2[1])}' fill='none' stroke='${i==cur?"var(--fg)":"#9d9b94"}' stroke-width='2' opacity='${i==cur?1:.9}'/>`;
+   const tv=nrm(e2,r),nx=tv[0],ny=tv[1],tp=pt(q[1],r);
+   s+=`<path d='M${f(p2[0]+nx*3)} ${f(p2[1]+ny*3)}L${f(tp[0])} ${f(tp[1])}L${f(p2[0]-nx*3)} ${f(p2[1]-ny*3)}Z' fill='${i==cur?"var(--fg)":"#9d9b94"}' opacity='${i==cur?1:.9}'/>`;
+   {const mm=i==3?(q[0]+Math.min(q[1],I[0]))/2:(q[0]+q[1])/2;s+=lab(mm,L[i][0],i==cur?17:15,i==cur?'var(--fg)':'#9d9b94')}}})}
+return `<div class='dial'><svg viewBox='32 38 436 424' role='img' aria-label='24-hour dial of prayer windows'>${s}</svg><div style='text-align:center;margin-top:6px'>${countdowns()}</div><div class='mut' style='text-align:center'>The ring turns so that now is always at the top, where the hand points. Light green is where methods differ, green is where all agree, white is no prayer time, and red is makruh time.</div></div>`;
+}
+const CU=`New York|NY|40.71|-74.01;Los Angeles|CA|34.05|-118.24;Chicago|IL|41.88|-87.63;Houston|TX|29.76|-95.37;Phoenix|AZ|33.45|-112.07;Philadelphia|PA|39.95|-75.17;San Antonio|TX|29.42|-98.49;San Diego|CA|32.72|-117.16;Dallas|TX|32.78|-96.80;San Jose|CA|37.34|-121.89;Austin|TX|30.27|-97.74;Jacksonville|FL|30.33|-81.66;Fort Worth|TX|32.76|-97.33;Columbus|OH|39.96|-83.00;Charlotte|NC|35.23|-80.84;San Francisco|CA|37.77|-122.42;Indianapolis|IN|39.77|-86.16;Seattle|WA|47.61|-122.33;Denver|CO|39.74|-104.99;Washington|DC|38.91|-77.04;Boston|MA|42.36|-71.06;El Paso|TX|31.76|-106.49;Nashville|TN|36.16|-86.78;Detroit|MI|42.33|-83.05;Oklahoma City|OK|35.47|-97.52;Portland|OR|45.52|-122.68;Las Vegas|NV|36.17|-115.14;Memphis|TN|35.15|-90.05;Louisville|KY|38.25|-85.76;Baltimore|MD|39.29|-76.61;Milwaukee|WI|43.04|-87.91;Albuquerque|NM|35.08|-106.65;Tucson|AZ|32.22|-110.97;Fresno|CA|36.74|-119.79;Sacramento|CA|38.58|-121.49;Kansas City|MO|39.10|-94.58;Atlanta|GA|33.75|-84.39;Miami|FL|25.76|-80.19;Orlando|FL|28.54|-81.38;Tampa|FL|27.95|-82.46;Raleigh|NC|35.78|-78.64;Omaha|NE|41.26|-95.93;Minneapolis|MN|44.98|-93.27;Cleveland|OH|41.50|-81.69;New Orleans|LA|29.95|-90.07;Pittsburgh|PA|40.44|-80.00;Cincinnati|OH|39.10|-84.51;St. Louis|MO|38.63|-90.20;Salt Lake City|UT|40.76|-111.89;Honolulu|HI|21.31|-157.86;Anchorage|AK|61.22|-149.90;Richmond|VA|37.54|-77.44;Birmingham|AL|33.52|-86.80;Buffalo|NY|42.89|-78.88;Hartford|CT|41.76|-72.69;Providence|RI|41.82|-71.41;Boise|ID|43.62|-116.20;Des Moines|IA|41.59|-93.62;Little Rock|AR|34.75|-92.29;Jackson|MS|32.30|-90.18;Charleston|SC|32.78|-79.93;Columbia|SC|34.00|-81.03;Knoxville|TN|35.96|-83.92;Savannah|GA|32.08|-81.09;Tallahassee|FL|30.44|-84.28;Fort Lauderdale|FL|26.12|-80.14;Newark|NJ|40.74|-74.17;Wichita|KS|37.69|-97.34;Spokane|WA|47.66|-117.43;Madison|WI|43.07|-89.40;Fargo|ND|46.88|-96.79;Sioux Falls|SD|43.55|-96.73;Billings|MT|45.78|-108.50;Cheyenne|WY|41.14|-104.82;Burlington|VT|44.48|-73.21;Portland|ME|43.66|-70.26;Manchester|NH|42.99|-71.45;Wilmington|DE|39.74|-75.55;Charleston|WV|38.35|-81.63;Huntsville|AL|34.73|-86.59;Baton Rouge|LA|30.45|-91.19;Lexington|KY|38.04|-84.50;Reno|NV|39.53|-119.81`.split(';').map(x=>x.split('|')),CW=`London|51.51|-0.13;Paris|48.86|2.35;Berlin|52.52|13.40;Madrid|40.42|-3.70;Rome|41.90|12.50;Amsterdam|52.37|4.90;Brussels|50.85|4.35;Istanbul|41.01|28.98;Ankara|39.93|32.86;Cairo|30.04|31.24;Casablanca|33.57|-7.59;Rabat|34.02|-6.84;Marrakesh|31.63|-8.01;Tangier|35.76|-5.80;Algiers|36.75|3.06;Tunis|36.81|10.18;Riyadh|24.71|46.68;Jeddah|21.49|39.19;Mecca|21.39|39.86;Medina|24.47|39.61;Dubai|25.20|55.27;Doha|25.29|51.53;Kuwait City|29.38|47.99;Amman|31.95|35.93;Beirut|33.89|35.50;Baghdad|33.31|44.37;Tehran|35.69|51.39;Karachi|24.86|67.01;Lahore|31.55|74.34;Islamabad|33.69|73.05;Delhi|28.61|77.21;Mumbai|19.08|72.88;Dhaka|23.81|90.41;Jakarta|-6.21|106.85;Kuala Lumpur|3.14|101.69;Singapore|1.35|103.82;Tokyo|35.68|139.69;Beijing|39.90|116.41;Shanghai|31.23|121.47;Hong Kong|22.32|114.17;Seoul|37.57|126.98;Sydney|-33.87|151.21;Melbourne|-37.81|144.96;Auckland|-36.85|174.76;Lagos|6.52|3.38;Nairobi|-1.29|36.82;Johannesburg|-26.20|28.05;Cape Town|-33.92|18.42;Toronto|43.65|-79.38;Montreal|45.50|-73.57;Vancouver|49.28|-123.12;Ottawa|45.42|-75.70;Calgary|51.05|-114.07;Mexico City|19.43|-99.13;São Paulo|-23.55|-46.63;Buenos Aires|-34.60|-58.38;Moscow|55.76|37.62;Stockholm|59.33|18.07;Oslo|59.91|10.75;Reykjavik|64.15|-21.94;Helsinki|60.17|24.94;Dublin|53.35|-6.26;Manchester|53.48|-2.24;Lisbon|38.72|-9.14;Vienna|48.21|16.37;Zurich|47.37|8.54;Athens|37.98|23.73;Warsaw|52.23|21.01;Kyiv|50.45|30.52;Bangkok|13.76|100.50;Manila|14.60|120.98;Addis Ababa|9.03|38.74;Khartoum|15.50|32.56;Dakar|14.72|-17.47;Accra|5.60|-0.19;Tripoli|32.89|13.19;Muscat|23.59|58.41;Kabul|34.53|69.17;Tashkent|41.30|69.24;Baku|40.41|49.87;Sarajevo|43.86|18.41`.split(';').map(x=>x.split('|'));
+function nearCity(la,lo){let b=null,bd=1e9;const dd=(c,i)=>{const dy=(la-c[i])*111,dx=(lo-c[i+1])*111*Math.cos(la*Math.PI/180);return Math.hypot(dx,dy)};
+ CU.forEach(c=>{const d=dd(c,2);if(d<bd){bd=d;b=c[0]+', '+c[1]}});CW.forEach(c=>{const d=dd(c,1);if(d<bd){bd=d;b=c[0]}});return bd<=120?b:''}
+function cityName(la,lo){
+ const el=document.getElementById('city');el.textContent=nearCity(la,lo);
+ fetch('https://api.bigdatacloud.net/data/reverse-geocode-client?latitude='+la+'&longitude='+lo+'&localityLanguage=en').then(r=>r.json()).then(j=>{
+  const c=j.city||j.locality||'',st=j.principalSubdivision||'';
+  if(c)el.textContent=j.countryCode==='US'&&st?c+', '+st:c}).catch(()=>{})
+}
+let manual='';
+const CL=[...CU.map(c=>[c[0]+', '+c[1],+c[2],+c[3]]),...CW.map(c=>[c[0],+c[1],+c[2]])].sort((a,b)=>a[0].localeCompare(b[0]));
+function setManual(i){const c=CL[i];if(!c)return;manual=c[0];place={lat:c[1],lon:c[2],sample:false};document.getElementById('city').textContent=c[0];document.getElementById('pick').style.display='none';try{localStorage.setItem('ptw-city',String(i))}catch(e){}render()}
+function locate(){
+ const el=document.getElementById('city'),fail=m=>{el.textContent=manual||(m+' · choose city');render()};
+ if(manual&&arguments[0]===1){fail('');return}
+ if(!navigator.geolocation){fail('Location not available');return}
+ navigator.geolocation.getCurrentPosition(p=>{manual='';place={lat:p.coords.latitude,lon:p.coords.longitude,sample:false};render();cityName(p.coords.latitude,p.coords.longitude)},e=>fail(e&&e.code==1?'Location blocked':'Location unavailable'),{timeout:8000});
+}
+{const pk=document.getElementById('pick');pk.innerHTML='<option value="">Choose city…</option>'+CL.map((c,i)=>'<option value="'+i+'">'+c[0]+'</option>').join('');
+ pk.onchange=()=>{if(pk.value!=='')setManual(+pk.value)};
+ document.getElementById('city').onclick=()=>{pk.style.display=pk.style.display==='none'?'inline-block':'none'};
+ try{const v=localStorage.getItem('ptw-city');if(v!==null)setManual(+v)}catch(e){}}
+document.getElementById("geo").onclick=locate;
+document.getElementById('city').textContent=nearCity(place.lat,place.lon);render();locate();setInterval(render,1000);
+</script></body></html>
