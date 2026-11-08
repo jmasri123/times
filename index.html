@@ -239,7 +239,7 @@ let manual='';
 const CL=[...CU.map(c=>[c[0]+', '+c[1],+c[2],+c[3]]),...CW.map(c=>[c[0],+c[1],+c[2]])].sort((a,b)=>a[0].localeCompare(b[0]));
 function setManual(i){const c=CL[i];if(!c)return;manual=c[0];place={lat:c[1],lon:c[2],sample:false};document.getElementById('city').textContent=c[0].replace(', ','\n');document.getElementById('pick').style.display='none';try{localStorage.setItem('ptw-city',String(i))}catch(e){}render()}
 function locate(){
- const el=document.getElementById('city'),fail=m=>{el.textContent=manual||nearCity(place.lat,place.lon)||'Choose city';render()};
+ const el=document.getElementById('city'),fail=m=>{el.textContent=(manual||nearCity(place.lat,place.lon)||'Choose city');if(m){const e=document.createElement('span');e.style.cssText='color:#d9534f;display:block';e.textContent=m;el.insertBefore(e,el.firstChild)}render()};
  if(manual&&arguments[0]===1){fail('');return}
  if(!navigator.geolocation){fail('Location not available');return}
  navigator.geolocation.getCurrentPosition(p=>{manual='';place={lat:p.coords.latitude,lon:p.coords.longitude,sample:false};render();cityName(p.coords.latitude,p.coords.longitude)},e=>fail(e&&e.code==1?'Location blocked':'Location unavailable'),{timeout:8000});
