@@ -192,7 +192,7 @@ function dial(P,now,d){
  L.forEach((l,i)=>{if([0,1,2,3,4].includes(i))return;
   const m=(l[1]+l[2])/2,t=pt(m,190),sx=Math.sin((m-off)/24*2*Math.PI),an=sx>.3?'start':sx<-.3?'end':'middle';
   s+=`<text x='${f(t[0])}' y='${f(t[1])}' text-anchor='${an}' dominant-baseline='central' font-size='${i==cur?19:16}' font-weight='${i==cur?800:600}' fill='var(--fg)'>${l[0]}</text>`});
- const MSG=[['Dhuhr starting','MCW time starts in {ms} ({t})'],['Dhuhr Time',''],['Asr Time','Hanafi? wait {mn}'],['Asr Time',''],['Maghrib starting','MCW time starts in {ms} ({t})'],['Maghrib Time',''],['Time is closing','{mi} Isha in {ms} ({t})'],['Isha Time',''],['Isha closing','Valid per some methods until {t}.'],['Fajr Time','{mf} starts in {ms} ({t})'],['Fajr Time',''],['Makruh','{cd} until Dhuhr'],['Makruh','Duha Time starts in {ms}'],['Asr Time','{cd} until Maghrib']];
+ const MSG=[['Dhuhr starting','MCW time starts in {ms} ({t})'],['Dhuhr Time',''],['Asr Time','Hanafi? wait {mn}'],['Asr Time',''],['Maghrib starting','MCW time starts in {ms} ({t})'],['Maghrib Time',''],['Isha Time','{mi} Isha in {ms} ({t})'],['Isha Time',''],['Isha closing','Valid per some methods until {t}.'],['Fajr Time','{mf} starts in {ms} ({t})'],['Fajr Time',''],['Makruh','{cd} until Dhuhr'],['Makruh','Duha Time starts in {ms}'],['Asr Time','{cd} until Maghrib']];
  const hit=(a,z)=>[now,now+24].some(v=>v>=a&&v<z);
  let m=null,gi=-1;[13,11,12,0,1,2,3,4,5,6,7,8,9,10].forEach(i=>{const g=segs[i];if(!m&&hit(g[0],g[1])){m=[MSG[i],g[1]];gi=i}});
  const CDT={1:'Asr',3:'Maghrib',5:'Isha',7:'Fajr',10:'sunrise'};
