@@ -188,6 +188,7 @@ function dial(P,now,d){
   let s=`<ellipse cx='${C}' cy='${C}' rx='${EA}' ry='${EB}' fill='none' stroke='#fff' stroke-width='${W}'/>`;
  segs.forEach(g=>{s+=arc(g[0],g[1],g[2])});
  if(!(()=>{try{const w=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',weekday:'short'}).format(d);return w==='Sat'||w==='Sun'}catch(e){return false}})()){const eh=(()=>{try{const x=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour:'numeric',minute:'numeric',hour12:false}).formatToParts(d),g=t=>+x.find(o=>o.type==t).value;return(g('hour')%24)+g('minute')/60}catch(e){return now}})(),dl=fix(now-eh+12,24)-12,a0=fix(9+dl,24),a1=a0+8,rb=R-W/2-3.5,p1=pt(a0,rb),p2=pt(a1,rb);s+=`<path d='M${f(p1[0])} ${f(p1[1])}A${EA+rb-R} ${EB+rb-R} 0 ${big(a0,a1)} 1 ${f(p2[0])} ${f(p2[1])}' fill='none' stroke='#2f80ed' stroke-width='5' stroke-linecap='round'/>`}
+ {const q0=M[0]+(G[0]-M[0])*2/3,rb=R-W/2-12,p1=pt(q0,rb),p2=pt(G[0],rb);s+=`<path d='M${f(p1[0])} ${f(p1[1])}A${EA+rb-R} ${EB+rb-R} 0 ${big(q0,G[0])} 1 ${f(p2[0])} ${f(p2[1])}' fill='none' stroke='#7e57c2' stroke-width='5' stroke-linecap='round'/>`}
  
  L.forEach((l,i)=>{if([0,1,2,3,4].includes(i))return;
   const m=(l[1]+l[2])/2,t=pt(m,190),sx=Math.sin((m-off)/24*2*Math.PI),an=sx>.3?'start':sx<-.3?'end':'middle';
