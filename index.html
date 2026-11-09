@@ -199,7 +199,7 @@ function dial(P,now,d){
  const CDS={1:D[0],3:A[0],5:M[0],7:I[0],10:G[0]},CDE={3:M[0]};
  if(gi in CDT){const g=segs[gi],T=CDE[gi]||g[1];if(fix(T-now,24)<=(T-CDS[gi])/3)m=[[m[0][0],'{cd} until '+CDT[gi]],T]}
  {const T1=M[0]+(G[0]-M[0])/3;if(m&&m[0][0]&&!m[0][1]&&hit(M[0],T1))m=[[m[0][0],'Best Time'],m[1]]}
- {const Q0=M[0]+(G[0]-M[0])*2/3;if(hit(Q0,G[0]))m=[[fix(G[0]-now,24)<=.5?'':'Qiyam Time',fix(G[0]-now,24)<=.5?'{c5} until Fajr ({fe})':'The Last Third'],G[0]]}
+ {const Q0=M[0]+(G[0]-M[0])*2/3;if(hit(Q0,G[0])){const r=fix(G[0]-now,24),t=Math.max(0,Math.floor(r*3600+1e-6));m=r*3600<300?[[String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0'),'until Fajr ({fe})'],G[0]]:[['Qiyam Time',r<=.5?'{c5} until Fajr ({fe})':'The Last Third'],G[0]]}}
  if(!m&&hit(F[2],D[0]))m=[['Duha Time','{dh}'],D[0]];
  if(!m)m=[['Now: '+L[cur][0],''],0];
  const wrap=(t,n)=>{const l=[];let c='';t.split(' ').forEach(x=>{if((c+' '+x).trim().length>n){l.push(c);c=x}else c=(c+' '+x).trim()});if(c)l.push(c);return l};
