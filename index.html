@@ -180,7 +180,7 @@ function countdowns(){
  window.RMD=ev.find(x=>x[1]=='Ramadan');const rows=ev.filter(x=>x[1]!='Ramadan');
  rows.sort((a,c)=>a[0]-c[0]);
  const td='padding:4px 8px;border-top:1px solid var(--bd)';
- return '<table style="margin:4px auto 0 -6px;border-collapse:collapse;font-size:13px"><thead><tr style="color:var(--mut);font-size:11px;text-align:left"><th style="padding:3px 8px;font-weight:600">Event</th><th style="padding:3px 8px;font-weight:600;text-align:center">Days left</th><th style="padding:3px 8px;font-weight:600">Date</th></tr></thead><tbody>'+rows.map(x=>'<tr><td style="'+td+';font-weight:700;text-align:left">'+x[1]+'</td><td style="'+td+';text-align:center;font-weight:700">'+(x[0]==0?'Today':x[0])+'</td><td style="'+td+';color:var(--mut);text-align:left">'+x[2]+'</td></tr>').join('')+'</tbody></table>'}
+ return '<table style="margin:4px auto 0 -6px;border-collapse:collapse;font-size:13px"><thead><tr style="color:var(--mut);font-size:11px;text-align:left"><th style="padding:3px 8px;font-weight:600">Event</th><th style="padding:3px 8px;font-weight:600;text-align:center">Days left</th><th style="padding:3px 8px;font-weight:600">Date</th></tr></thead><tbody>'+rows.map(x=>{const g=/BD/.test(x[1])&&x[0]===5?';color:#2e7d4f':'';return '<tr><td style="'+td+g+';font-weight:700;text-align:left">'+x[1]+'</td><td style="'+td+g+';text-align:center;font-weight:700">'+(x[0]==0?'Today':x[0])+'</td><td style="'+td+(g||';color:var(--mut)')+';text-align:left">'+x[2]+'</td></tr>'}).join('')+'</tbody></table>'}
 function dial(P,now,d){
  const trv=!!window.TRV,F=P[0].b,G=F.map(x=>x+24);let D=P[1].b,A=P[2].b,M=P[3].b,I=P[4].b;
  if(trv){const set=A[2],g0=G[0];D=[D[0],D[1],set,set];A=[set,set,set];M=[M[0],M[1],g0,g0];I=[g0,g0,g0,g0]}
