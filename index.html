@@ -71,7 +71,7 @@ function compute(d,lat,lon){
  const inMA=(()=>{let c=false;for(let i=0,j=MA.length-1;i<MA.length;j=i++){const[a,b]=MA[i],[e,f]=MA[j];if((b>lon)!=(f>lon)&&lat<(e-a)*(lon-b)/(f-b)+a)c=!c}return c})();
  const NM=inMA?['19.1°']:['15°','18°'],fT=inMA?[tw(19.1,-1)]:[tw(15,-1),tw(18,-1)],iT=inMA?[tw(17,1)]:[tw(15,1),tw(18,1)];
  const fE=Math.min(...fT),fL=Math.max(...fT),iE=Math.min(...iT),iL=Math.max(...iT);
- const nm=(T,v)=>NM.filter((x,i)=>Math.abs(T[i]-v)<1e-4).join('/'),meta={fL:nm(fT,fL),iL:nm(iT,iL)};
+ const nm=(T,v)=>NM.filter((x,i)=>Math.abs(T[i]-v)<1e-4).join('/'),meta={fE:nm(fT,fE),fL:nm(fT,fL),iL:nm(iT,iL)};
  const aS=asr(1),aH=inMA?aS:asr(2),nz=s.noon;
  const P=[
  {n:"Fajr",b:[fE,fL,rise],k:["no","some","all","no"],t:["Too early","Valid per some methods (ISNA, MWL and Moonsighting differ here)","Valid by all methods","Time over (sunrise)"]},
@@ -199,14 +199,14 @@ function dial(P,now,d){
  const CDS={1:D[0],3:A[0],5:M[0],7:I[0],10:G[0]},CDE={3:M[0]};
  if(gi in CDT){const g=segs[gi],T=CDE[gi]||g[1];if(fix(T-now,24)<=(T-CDS[gi])/3)m=[[m[0][0],'{cd} until '+CDT[gi]],T]}
  {const T1=M[0]+(G[0]-M[0])/3;if(m&&m[0][0]&&!m[0][1]&&hit(M[0],T1))m=[[m[0][0],'Best Time'],m[1]]}
- {const Q0=M[0]+(G[0]-M[0])*2/3;if(hit(Q0,G[0]))m=[['Qiyam Time',fix(G[0]-now,24)<=.5?'{c5} until Fajr':'The Last Third'],G[0]]}
+ {const Q0=M[0]+(G[0]-M[0])*2/3;if(hit(Q0,G[0]))m=[['Qiyam Time',fix(G[0]-now,24)<=.5?'{c5} until Fajr ({fe})':'The Last Third'],G[0]]}
  if(!m&&hit(F[2],D[0]))m=[['Duha Time','{dh}'],D[0]];
  if(!m)m=[['Now: '+L[cur][0],''],0];
  const wrap=(t,n)=>{const l=[];let c='';t.split(' ').forEach(x=>{if((c+' '+x).trim().length>n){l.push(c);c=x}else c=(c+' '+x).trim()});if(c)l.push(c);return l};
  const msf=x=>{const t=Math.max(0,Math.floor(x*3600+1e-6));return String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0')};
  const cdf=x=>{const t=Math.floor(x*3600+1e-6);return t>=600?Math.floor(t/60)+' min':String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0')};
  const dhf=x=>{if(x*3600<=3600)return 'Dhuhr in '+msf(x)+' ('+fmt(m[1])+')';const h=Math.max(1,Math.round(x));return 'Dhuhr in '+h+' hour'+(h==1?'':'s')+' ('+fmt(m[1])+')'};
- let solo=!m[0][0];const hl=wrap(m[0][0],16);let dl=m[0][1]?wrap(m[0][1].replace('{t}',fmt(m[1])).replace('{mf}',P.meta.fL).replace('{mi}',P.meta.iL).replace('{ms}',msf(fix(m[1]-now,24))).replace('{c5}',(x=>{const t=Math.floor(x*3600+1e-6);return t>=300?Math.floor(t/60)+' minutes':String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0')})(fix(m[1]-now,24))).replace('{cd}',cdf(fix(m[1]-now,24))).replace('{dh}',dhf(fix(m[1]-now,24))).replace('{mn}',(x=>x+' minute'+(x==1?'':'s'))(Math.max(1,Math.ceil(fix(m[1]-now,24)*60)))),999):[];
+ let solo=!m[0][0];const hl=wrap(m[0][0],16);let dl=m[0][1]?wrap(m[0][1].replace('{t}',fmt(m[1])).replace('{mf}',P.meta.fL).replace('{fe}',P.meta.fE).replace('{mi}',P.meta.iL).replace('{ms}',msf(fix(m[1]-now,24))).replace('{c5}',(x=>{const t=Math.floor(x*3600+1e-6);return t>=300?Math.floor(t/60)+' min':String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0')})(fix(m[1]-now,24))).replace('{cd}',cdf(fix(m[1]-now,24))).replace('{dh}',dhf(fix(m[1]-now,24))).replace('{mn}',(x=>x+' minute'+(x==1?'':'s'))(Math.max(1,Math.ceil(fix(m[1]-now,24)*60)))),999):[];
  const iq0=iqamaLine(st,now,gi);if(iq0){solo=false;dl=[...(m[0][0]?[m[0][0]]:[]),...(gi===2?dl:[])]}
  const mk=[11,12,13].includes(gi),hb=mk?'none':'var(--bg)';
  if(mk)s+=`<circle cx='${C}' cy='${C}' r='${EA-W/2}' fill='rgba(217,83,79,.2)'/>`;
