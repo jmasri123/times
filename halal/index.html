@@ -5,10 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Halal Scan">
+<meta name="apple-mobile-web-app-title" content="Halal Scanner">
 <meta name="theme-color" content="#141413">
-<title>Halal Scan</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231f8a4c'/%3E%3Cpath d='M18 33l9 9 19-20' fill='none' stroke='white' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<title>Halal Scanner</title>
+<link rel="icon" href="logo.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
   :root{
@@ -25,6 +27,9 @@
   html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 -apple-system,system-ui,"Segoe UI",Roboto,sans-serif}
   main{max-width:520px;margin:0 auto;padding:calc(10px + env(safe-area-inset-top)) 14px calc(30px + env(safe-area-inset-bottom))}
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;margin-top:12px}
+  header{display:flex;align-items:center;gap:10px;margin:0 2px 10px}
+  header img{width:34px;height:34px;border-radius:8px}
+  header h1{font-size:20px;margin:0}
   #cam{position:relative;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:4/3}
   #reader{width:100%;height:100%}
   #reader video{width:100%!important;height:100%!important;object-fit:cover}
@@ -52,7 +57,9 @@
   .ing{margin:10px 2px 0;font-size:14px}
   .hl{border-radius:4px;padding:0 2px;font-weight:600}
   .hl-pork,.hl-unclear{background:var(--red-bg);color:var(--red)}
-  .hl-beef{background:var(--amber-bg);color:var(--amber)}
+  .hl-beef,.hl-lamb,.hl-chicken{background:var(--amber-bg);color:var(--amber)}
+  .animals{flex:none;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:2px;width:60px;min-height:52px;font-size:30px;line-height:1}
+  .animals span:only-child{font-size:44px}
   .row{display:flex;gap:8px;margin-top:10px}
   .row .btn{flex:1}
   .status{display:flex;align-items:center;gap:10px;color:var(--muted);padding:6px 2px}
@@ -66,6 +73,7 @@
 </head>
 <body>
 <main>
+  <header><img src="logo.svg" alt=""><h1>Halal Scanner</h1></header>
   <div id="cam">
     <div id="reader"></div>
     <div id="camMsg">
@@ -84,9 +92,10 @@
   <details>
     <summary>How products are rated</summary>
     <ol>
-      <li><b>Kosher</b> label in the product data → green check.</li>
-      <li><b>Pork or pork-derived</b> ingredient, or one whose animal source isn't stated (plain gelatin, rennet, enzymes, mono- and diglycerides, L-cysteine, glycerin, stearic acid…) → red stop.</li>
-      <li><b>Beef, veal, lamb or mutton</b> ingredient → question mark (may not be zabiha).</li>
+      <li><b>Pork or pork-derived</b> ingredient → red stop, always.</li>
+      <li><b>Halal or kosher</b> label in the product data → green check.</li>
+      <li>Animal ingredient whose source isn't stated (plain gelatin, rennet, enzymes, mono- and diglycerides, L-cysteine, glycerin, stearic acid…) → red stop.</li>
+      <li><b>Beef, lamb or chicken</b> (incl. veal, mutton, turkey) → that animal's icon; check the package for a halal or kosher label.</li>
       <li>None of the above → green check.</li>
     </ol>
     Product data comes from <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener">Open Food Facts</a>, a volunteer database: kosher symbols are often missing and ingredient lists can be outdated. Alcohol isn't checked. Always glance at the package for anything that matters.
@@ -96,20 +105,26 @@
 <script>
 /* ---------- Rules ---------- */
 const PORK = /\b(pork|porc|porcine|swine|pig|pigs|hog|lard|saindoux|manteca de cerdo|bacon|ham|jamon|jambon|pancetta|prosciutto|guanciale|mortadella|pepperoni|salami|chorizo|cerdo|cochon|chicharron(es)?|pork rinds?)\b/i;
-const BEEF = /\b(beef|boeuf|bœuf|veal|veau|lamb|agneau|cordero|mutton|tallow|suet|bovine|bovin|ovine|ovin|cattle|carne de res|ternera)\b/i;
+const BEEF = /\b(beef|boeuf|bœuf|veal|veau|tallow|suet|bovine|bovin|cattle|carne de res|ternera)\b/i;
+const LAMB = /\b(lamb|agneau|cordero|mutton|sheep|mouton|ovine|ovin)\b/i;
+const CHICKEN = /\b(chicken|poulet|pollo|hen|poultry|volaille|turkey|dinde|pavo)\b/i;
 const UNCLEAR = /\b(gelatine?|gélatine|gelatina|e\s?441|rennet|pr[ée]sure|cuajo|enzymes?|lipase|mono[\s-]*(and|&|et|y)?[\s-]*di[\s-]*glycerides?|monoglycerides?|diglycerides?|mono-?\s?diglycerides?|e\s?47[12][a-f]?|l-?cysteine|e\s?920|glycerine?|glycerol|e\s?422|stearic acid|e\s?570|(magnesium|calcium|sodium) stearate|e\s?57[2-3]|animal (fat|shortening|fats)|collagen|sausage|saucisse)\b/i;
 // A stated non-pork, non-beef source clears an "unclear" ingredient.
-const SAFE_SOURCE = /\b(vegetable|veg|plant|plant-based|soy|soya|palm|sunflower|rapeseed|canola|coconut|microbial|fungal|bacterial|non[\s-]?animal|synthetic|vegan|vegetarian|fish|marine|chicken|turkey|poultry|halal|v[ée]g[ée]tal(e|es)?)\b/i;
+const SAFE_SOURCE = /\b(vegetable|veg|plant|plant-based|soy|soya|palm|sunflower|rapeseed|canola|coconut|microbial|fungal|bacterial|non[\s-]?animal|synthetic|vegan|vegetarian|fish|marine|halal|v[ée]g[ée]tal(e|es)?)\b/i;
+
+function animalOf(f){
+  if (BEEF.test(f)) return "beef";
+  if (LAMB.test(f)) return "lamb";
+  if (CHICKEN.test(f)) return "chicken";
+  return null;
+}
 
 function classify(fragment){
   const f = fragment.toLowerCase();
   if (PORK.test(f)) return "pork";
-  if (UNCLEAR.test(f)) {
-    if (BEEF.test(f)) return "beef";
-    if (SAFE_SOURCE.test(f)) return null;
-    return "unclear";
-  }
-  if (BEEF.test(f)) return "beef";
+  const a = animalOf(f);
+  if (a) return a;
+  if (UNCLEAR.test(f) && !SAFE_SOURCE.test(f)) return "unclear";
   return null;
 }
 
@@ -130,10 +145,11 @@ function analyze(text){
   return out;
 }
 
-function isKosher(p){
-  const tags = [].concat(p.labels_tags || [], p.labels_hierarchy || []);
-  if (tags.some(t => /kosher|casher|cacher/i.test(t))) return true;
-  return /kosher/i.test(p.labels || "");
+// Returns "Halal", "Kosher", "Halal & kosher" or "" from the product's labels.
+function certification(p){
+  const all = [].concat(p.labels_tags || [], p.labels_hierarchy || [], [p.labels || ""]).join(" ");
+  const halal = /halal/i.test(all), kosher = /kosher|casher|cacher/i.test(all);
+  return halal && kosher ? "Halal & kosher" : halal ? "Halal" : kosher ? "Kosher" : "";
 }
 
 /* ---------- UI helpers ---------- */
@@ -145,6 +161,7 @@ const MARKS = {
   amber:`<svg class="mark" viewBox="0 0 52 52"><circle cx="26" cy="26" r="25" fill="currentColor"/><text x="26" y="36" text-anchor="middle" font-size="30" font-weight="800" fill="#fff" font-family="system-ui,sans-serif">?</text></svg>`,
   none:`<svg class="mark" viewBox="0 0 52 52"><circle cx="26" cy="26" r="24" fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray="5 4"/><text x="26" y="35" text-anchor="middle" font-size="24" font-weight="700" fill="currentColor" font-family="system-ui,sans-serif">–</text></svg>`
 };
+const ICON = { beef: "🐄", lamb: "🐑", chicken: "🐔" };
 const LABEL_PAGE = "https://claude.ai/artifact/NeFaddeKJ1hLXDBTN7WiYf";
 
 function highlight(text, hits){
@@ -157,9 +174,9 @@ function highlight(text, hits){
   return html + esc(text.slice(pos));
 }
 
-function card(cls, title, sub, extra = ""){
+function card(cls, title, sub, extra = "", mark = MARKS[cls]){
   $("result").innerHTML = `<div class="card">
-    <div class="verdict v-${cls}">${MARKS[cls]}<div><h2>${title}</h2><p>${sub}</p></div></div>
+    <div class="verdict v-${cls}">${mark}<div><h2>${title}</h2><p>${sub}</p></div></div>
     ${extra}
     <div class="row"><button class="btn" id="next">Scan next</button></div></div>`;
   $("next").onclick = () => { $("result").innerHTML = ""; $("code").value = ""; resumeScan(); window.scrollTo({top:0,behavior:"smooth"}); };
@@ -201,19 +218,21 @@ async function check(code){
   const ingHTML = text ? `<div class="ing">${highlight(text, hits)}</div>` : "";
   const names = cat => [...new Set(hits.filter(h => h.cat === cat).map(h => h.text))].join(", ");
 
-  if (isKosher(p)) { card("green", "Kosher — halal", "Kosher-labeled product.", prod + ingHTML); return; }
-  if (!text) { card("none", "No ingredient list", "This product has no ingredients in the database.", prod + fallback); return; }
+  const pork = names("pork"), unclear = names("unclear");
+  const cert = certification(p);
+  const animals = ["beef","lamb","chicken"].filter(a => names(a));
 
-  const pork = names("pork"), unclear = names("unclear"), beef = names("beef");
-  if (pork || unclear) {
-    card("red", "Stop — not halal",
-      [pork && `Pork: ${esc(pork)}.`, unclear && `Source not stated: ${esc(unclear)}.`].filter(Boolean).join(" "),
-      prod + ingHTML);
-  } else if (beef) {
-    card("amber", "Check the source", `Contains ${esc(beef)}. May not be zabiha.`, prod + ingHTML);
-  } else {
-    card("green", "No concerns found", "No pork, beef or lamb ingredients.", prod + ingHTML);
+  if (pork) { card("red", "Stop — pork", `Contains ${esc(pork)}.`, prod + ingHTML); return; }
+  if (cert) { card("green", cert, `Labeled ${cert.toLowerCase()} in the product data.`, prod + ingHTML); return; }
+  if (!text) { card("none", "No ingredient list", "This product has no ingredients in the database.", prod + fallback); return; }
+  if (unclear) { card("red", "Stop — source not stated", `${esc(unclear)} could be from pork.`, prod + ingHTML); return; }
+  if (animals.length) {
+    const words = animals.join(", ");
+    card("amber", `Contains ${words}`, "Check the package for a halal or kosher label.", prod + ingHTML,
+      `<div class="animals">${animals.map(a => `<span title="${a}">${ICON[a]}</span>`).join("")}</div>`);
+    return;
   }
+  card("green", "No concerns found", "No pork, beef, lamb or chicken ingredients.", prod + ingHTML);
 }
 
 /* ---------- Scanner ---------- */
