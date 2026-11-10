@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Halal Scan">
+<meta name="theme-color" content="#141413">
+<title>Halal Scan</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231f8a4c'/%3E%3Cpath d='M18 33l9 9 19-20' fill='none' stroke='white' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+  :root{
+    --bg:#f6f5f1; --card:#fff; --ink:#1d1d1b; --muted:#6b6a65; --line:#e4e2db;
+    --green:#1f8a4c; --green-bg:#e6f4ec; --red:#c62828; --red-bg:#fbe9e9;
+    --amber:#b26a00; --amber-bg:#fdf1dc; --accent:#1d1d1b;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#141413; --card:#1f1e1c; --ink:#f1efe8; --muted:#a3a19a; --line:#34322e;
+      --green:#4cc27f; --green-bg:#16301f; --red:#ff6b6b; --red-bg:#3a1a1a;
+      --amber:#f0b44c; --amber-bg:#3a2c12; --accent:#f1efe8; }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 -apple-system,system-ui,"Segoe UI",Roboto,sans-serif}
+  main{max-width:520px;margin:0 auto;padding:calc(10px + env(safe-area-inset-top)) 14px calc(30px + env(safe-area-inset-bottom))}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;margin-top:12px}
+  #cam{position:relative;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:4/3}
+  #reader{width:100%;height:100%}
+  #reader video{width:100%!important;height:100%!important;object-fit:cover}
+  #reader img[alt="Info icon"], #reader__dashboard_section_csr span{display:none!important}
+  #camMsg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+      color:#fff;text-align:center;padding:20px;font-size:15px}
+  #camMsg[hidden]{display:none}
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border:0;border-radius:12px;
+       padding:13px;font:600 16px/1 -apple-system,system-ui,sans-serif;cursor:pointer;background:var(--accent);color:var(--bg);text-decoration:none}
+  .btn.light{background:#fff;color:#111;width:auto;padding:12px 20px}
+  .btn.secondary{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  form{display:flex;gap:8px;margin-top:10px}
+  form input{flex:1;min-width:0;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:12px;font-size:16px}
+  form .btn{width:auto;padding:12px 16px}
+  .verdict{display:flex;gap:12px;align-items:center;border-radius:12px;padding:12px}
+  .mark{flex:none;width:52px;height:52px}
+  .verdict h2{margin:0;font-size:19px}
+  .verdict p{margin:2px 0 0;font-size:14px;color:var(--ink)}
+  .v-green{background:var(--green-bg);color:var(--green)}
+  .v-red{background:var(--red-bg);color:var(--red)}
+  .v-amber{background:var(--amber-bg);color:var(--amber)}
+  .v-none{background:var(--bg);color:var(--muted)}
+  .prod{display:flex;gap:10px;align-items:center;margin:10px 2px 0;font-size:14px;color:var(--muted)}
+  .prod img{width:40px;height:40px;object-fit:contain;border-radius:6px;background:#fff}
+  .ing{margin:10px 2px 0;font-size:14px}
+  .hl{border-radius:4px;padding:0 2px;font-weight:600}
+  .hl-pork,.hl-unclear{background:var(--red-bg);color:var(--red)}
+  .hl-beef{background:var(--amber-bg);color:var(--amber)}
+  .row{display:flex;gap:8px;margin-top:10px}
+  .row .btn{flex:1}
+  .status{display:flex;align-items:center;gap:10px;color:var(--muted);padding:6px 2px}
+  .spin{width:18px;height:18px;border:2px solid var(--line);border-top-color:var(--ink);border-radius:50%;animation:s .8s linear infinite}
+  @keyframes s{to{transform:rotate(360deg)}}
+  details{margin-top:14px;font-size:13px;color:var(--muted)}
+  details summary{cursor:pointer}
+  details li{margin:3px 0}
+  a{color:inherit}
+</style>
+</head>
+<body>
+<main>
+  <div id="cam">
+    <div id="reader"></div>
+    <div id="camMsg">
+      <div>Point the camera at a barcode</div>
+      <button class="btn light" id="startBtn">Start camera</button>
+    </div>
+  </div>
+
+  <form id="manual" autocomplete="off">
+    <input id="code" inputmode="numeric" pattern="[0-9]*" placeholder="Or type the barcode number">
+    <button class="btn" type="submit">Check</button>
+  </form>
+
+  <div id="result"></div>
+
+  <details>
+    <summary>How products are rated</summary>
+    <ol>
+      <li><b>Kosher</b> label in the product data → green check.</li>
+      <li><b>Pork or pork-derived</b> ingredient, or one whose animal source isn't stated (plain gelatin, rennet, enzymes, mono- and diglycerides, L-cysteine, glycerin, stearic acid…) → red stop.</li>
+      <li><b>Beef, veal, lamb or mutton</b> ingredient → question mark (may not be zabiha).</li>
+      <li>None of the above → green check.</li>
+    </ol>
+    Product data comes from <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener">Open Food Facts</a>, a volunteer database: kosher symbols are often missing and ingredient lists can be outdated. Alcohol isn't checked. Always glance at the package for anything that matters.
+  </details>
+</main>
+
+<script>
+/* ---------- Rules ---------- */
+const PORK = /\b(pork|porc|porcine|swine|pig|pigs|hog|lard|saindoux|manteca de cerdo|bacon|ham|jamon|jambon|pancetta|prosciutto|guanciale|mortadella|pepperoni|salami|chorizo|cerdo|cochon|chicharron(es)?|pork rinds?)\b/i;
+const BEEF = /\b(beef|boeuf|bœuf|veal|veau|lamb|agneau|cordero|mutton|tallow|suet|bovine|bovin|ovine|ovin|cattle|carne de res|ternera)\b/i;
+const UNCLEAR = /\b(gelatine?|gélatine|gelatina|e\s?441|rennet|pr[ée]sure|cuajo|enzymes?|lipase|mono[\s-]*(and|&|et|y)?[\s-]*di[\s-]*glycerides?|monoglycerides?|diglycerides?|mono-?\s?diglycerides?|e\s?47[12][a-f]?|l-?cysteine|e\s?920|glycerine?|glycerol|e\s?422|stearic acid|e\s?570|(magnesium|calcium|sodium) stearate|e\s?57[2-3]|animal (fat|shortening|fats)|collagen|sausage|saucisse)\b/i;
+// A stated non-pork, non-beef source clears an "unclear" ingredient.
+const SAFE_SOURCE = /\b(vegetable|veg|plant|plant-based|soy|soya|palm|sunflower|rapeseed|canola|coconut|microbial|fungal|bacterial|non[\s-]?animal|synthetic|vegan|vegetarian|fish|marine|chicken|turkey|poultry|halal|v[ée]g[ée]tal(e|es)?)\b/i;
+
+function classify(fragment){
+  const f = fragment.toLowerCase();
+  if (PORK.test(f)) return "pork";
+  if (UNCLEAR.test(f)) {
+    if (BEEF.test(f)) return "beef";
+    if (SAFE_SOURCE.test(f)) return null;
+    return "unclear";
+  }
+  if (BEEF.test(f)) return "beef";
+  return null;
+}
+
+// Split the ingredient text into fragments (by commas, brackets, etc.) and classify each.
+function analyze(text){
+  const out = [];
+  const re = /[^,;:()\[\]{}.·•]+/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const frag = m[0];
+    if (!frag.trim()) continue;
+    const c = classify(frag);
+    if (c) {
+      const lead = frag.length - frag.trimStart().length;
+      out.push({start: m.index + lead, end: m.index + frag.trimEnd().length, text: frag.trim(), cat: c});
+    }
+  }
+  return out;
+}
+
+function isKosher(p){
+  const tags = [].concat(p.labels_tags || [], p.labels_hierarchy || []);
+  if (tags.some(t => /kosher|casher|cacher/i.test(t))) return true;
+  return /kosher/i.test(p.labels || "");
+}
+
+/* ---------- UI helpers ---------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const MARKS = {
+  green:`<svg class="mark" viewBox="0 0 52 52"><circle cx="26" cy="26" r="25" fill="currentColor"/><path d="M15 27l7 7 15-16" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  red:`<svg class="mark" viewBox="0 0 52 52"><path d="M16 1h20l15 15v20L36 51H16L1 36V16z" fill="currentColor"/><path d="M17 17l18 18M35 17L17 35" stroke="#fff" stroke-width="5.5" stroke-linecap="round"/></svg>`,
+  amber:`<svg class="mark" viewBox="0 0 52 52"><circle cx="26" cy="26" r="25" fill="currentColor"/><text x="26" y="36" text-anchor="middle" font-size="30" font-weight="800" fill="#fff" font-family="system-ui,sans-serif">?</text></svg>`,
+  none:`<svg class="mark" viewBox="0 0 52 52"><circle cx="26" cy="26" r="24" fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray="5 4"/><text x="26" y="35" text-anchor="middle" font-size="24" font-weight="700" fill="currentColor" font-family="system-ui,sans-serif">–</text></svg>`
+};
+const LABEL_PAGE = "https://claude.ai/artifact/NeFaddeKJ1hLXDBTN7WiYf";
+
+function highlight(text, hits){
+  let html = "", pos = 0;
+  for (const h of hits) {
+    html += esc(text.slice(pos, h.start));
+    html += `<span class="hl hl-${h.cat}">${esc(text.slice(h.start, h.end))}</span>`;
+    pos = h.end;
+  }
+  return html + esc(text.slice(pos));
+}
+
+function card(cls, title, sub, extra = ""){
+  $("result").innerHTML = `<div class="card">
+    <div class="verdict v-${cls}">${MARKS[cls]}<div><h2>${title}</h2><p>${sub}</p></div></div>
+    ${extra}
+    <div class="row"><button class="btn" id="next">Scan next</button></div></div>`;
+  $("next").onclick = () => { $("result").innerHTML = ""; $("code").value = ""; resumeScan(); window.scrollTo({top:0,behavior:"smooth"}); };
+}
+
+/* ---------- Lookup ---------- */
+const FIELDS = "product_name,product_name_en,brands,ingredients_text_en,ingredients_text,labels,labels_tags,labels_hierarchy,image_front_small_url";
+
+async function fetchProduct(code){
+  const tries = [code];
+  if (code.length === 12) tries.push("0" + code);
+  if (code.length === 13 && code.startsWith("0")) tries.push(code.slice(1));
+  for (const c of tries) {
+    const r = await fetch(`https://world.openfoodfacts.org/api/v2/product/${c}.json?fields=${FIELDS}`);
+    if (!r.ok && r.status !== 404) throw new Error("http " + r.status);
+    const j = await r.json();
+    if (j.status === 1 && j.product) return j.product;
+  }
+  return null;
+}
+
+async function check(code){
+  code = String(code).replace(/\D/g, "");
+  if (code.length < 6) return;
+  $("result").innerHTML = `<div class="card status"><div class="spin"></div>Looking up ${esc(code)}…</div>`;
+  let p;
+  try { p = await fetchProduct(code); }
+  catch(e){
+    card("none", "Couldn't reach the database", "Check your connection and try again.");
+    return;
+  }
+  const fallback = `<p class="ing">Photograph the ingredients with the <a href="${LABEL_PAGE}" target="_blank" rel="noopener">label check</a> instead.</p>`;
+  if (!p) { card("none", "Product not found", `Barcode ${esc(code)} isn't in Open Food Facts.`, fallback); return; }
+
+  const name = esc([p.product_name_en || p.product_name, p.brands && p.brands.split(",")[0]].filter(Boolean).join(" · ") || "Unnamed product");
+  const prod = `<div class="prod">${p.image_front_small_url ? `<img src="${esc(p.image_front_small_url)}" alt="">` : ""}<span>${name}</span></div>`;
+  const text = (p.ingredients_text_en || p.ingredients_text || "").trim();
+  const hits = text ? analyze(text) : [];
+  const ingHTML = text ? `<div class="ing">${highlight(text, hits)}</div>` : "";
+  const names = cat => [...new Set(hits.filter(h => h.cat === cat).map(h => h.text))].join(", ");
+
+  if (isKosher(p)) { card("green", "Kosher — halal", "Kosher-labeled product.", prod + ingHTML); return; }
+  if (!text) { card("none", "No ingredient list", "This product has no ingredients in the database.", prod + fallback); return; }
+
+  const pork = names("pork"), unclear = names("unclear"), beef = names("beef");
+  if (pork || unclear) {
+    card("red", "Stop — not halal",
+      [pork && `Pork: ${esc(pork)}.`, unclear && `Source not stated: ${esc(unclear)}.`].filter(Boolean).join(" "),
+      prod + ingHTML);
+  } else if (beef) {
+    card("amber", "Check the source", `Contains ${esc(beef)}. May not be zabiha.`, prod + ingHTML);
+  } else {
+    card("green", "No concerns found", "No pork, beef or lamb ingredients.", prod + ingHTML);
+  }
+}
+
+/* ---------- Scanner ---------- */
+let scanner = null, paused = false, lastCode = "", lastAt = 0;
+
+function validEAN(c){
+  if (![8,12,13].includes(c.length)) return c.length >= 6; // let other lengths through
+  const d = c.split("").map(Number), chk = d.pop();
+  const sum = d.reverse().reduce((s, n, i) => s + n * (i % 2 === 0 ? 3 : 1), 0);
+  return (10 - (sum % 10)) % 10 === chk;
+}
+
+function onScan(text){
+  if (paused) return;
+  const code = text.replace(/\D/g, "");
+  if (!validEAN(code)) return;
+  const now = Date.now();
+  // require two matching reads in a row to avoid misreads
+  if (code !== lastCode || now - lastAt > 1500) { lastCode = code; lastAt = now; return; }
+  paused = true; lastCode = "";
+  try { scanner.pause(true); } catch(e){}
+  if (navigator.vibrate) navigator.vibrate(60);
+  $("code").value = code;
+  check(code);
+}
+
+function resumeScan(){
+  if (!scanner) return;
+  paused = false;
+  try { scanner.resume(); } catch(e){}
+}
+
+async function startCamera(){
+  $("camMsg").innerHTML = `<div class="spin" style="border-top-color:#fff"></div>`;
+  try {
+    const F = Html5QrcodeSupportedFormats;
+    scanner = new Html5Qrcode("reader", {
+      formatsToSupport: [F.EAN_13, F.EAN_8, F.UPC_A, F.UPC_E],
+      experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+      verbose: false
+    });
+    await scanner.start({ facingMode: "environment" },
+      { fps: 12, qrbox: (w, h) => ({ width: Math.floor(w * 0.85), height: Math.floor(h * 0.45) }), aspectRatio: 4/3 },
+      onScan, () => {});
+    $("camMsg").hidden = true;
+    try { localStorage.setItem("camOK", "1"); } catch(e){}
+  } catch(e) {
+    $("camMsg").hidden = false;
+    $("camMsg").innerHTML = `<div>Camera not available. Allow camera access for this site, or type the barcode below.</div><button class="btn light" id="startBtn">Try again</button>`;
+    $("startBtn").onclick = startCamera;
+  }
+}
+
+$("startBtn").onclick = startCamera;
+$("manual").addEventListener("submit", e => {
+  e.preventDefault();
+  const v = $("code").value; $("code").blur();
+  if (scanner) { paused = true; try { scanner.pause(true); } catch(_){} }
+  check(v);
+});
+
+// Auto-start if camera was allowed before
+try { if (localStorage.getItem("camOK") && typeof Html5Qrcode !== "undefined") startCamera(); } catch(e){}
+</script>
+</body>
+</html>
