@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Daily Dashboard</title>
+<title>Dashboard</title>
 <style>
 :root{--bg:#faf8f4;--fg:#1d1d1b;--mut:#6b6b66;--card:#fff;--bd:#e4e0d8;--no:#d9534f;--some:#a8dcb9;--all:#2e9d5b;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141412;--fg:#f1efe9;--mut:#a09d94;--card:#1f1f1c;--bd:#33332e;--no:#e0645f;--some:#8fd4a9;--all:#3fb872;color-scheme:dark}}
@@ -33,7 +33,7 @@ main>*:not(#out):not(#geop):not(#wx):not(#alt){display:none}
 .dial>.mut{display:none}
 .dial svg{width:100%;max-width:470px;display:block;margin:8px auto 0}
 .warn{background:var(--card);border:1px solid #e5a823;border-radius:10px;padding:10px;font-size:14px;margin:10px 0}
-</style></head><body><main>
+</style><link rel="apple-touch-icon" href="icon.png"><meta name="apple-mobile-web-app-title" content="Dashboard"></head><body><main>
 <h1>Prayer time windows</h1>
 <div class="mut" id="loc">Finding your location…</div>
 <p id="geop" style="margin:8px 0"><span id="loc2"><button id="geo" aria-label="Use my location" title="Use my location" style="padding:4px 6px;line-height:0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></button><span id="city" style="font-size:12px;font-weight:600;cursor:pointer;text-decoration:underline dotted;white-space:pre-line;line-height:1.35"></span><select id="pick" style="display:none;font-size:15px;max-width:150px"></select></span><span id="dt" style="grid-column:2;grid-row:1/3"></span><span id="wx" style="grid-column:3;grid-row:1/3"></span><span id="mt" style="grid-column:1;grid-row:2;display:block;text-align:left;font-size:12px;font-weight:600;color:var(--fg);white-space:nowrap"></span><span id="wt" style="grid-column:1/-1;grid-row:3;display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12px;font-weight:600;margin-top:12px"><input id="wti" type="text" maxlength="5" inputmode="decimal" step="0.1" min="0" aria-label="Today's weight in pounds" style="width:5.6ch;text-align:center;font:inherit;font-size:13px;padding:3px 6px;box-sizing:content-box;border:1px solid var(--bd);border-radius:8px;background:#fff;color:var(--fg)"><span id="wtr" style="color:#d9534f;font-weight:700"></span><span dir="rtl" lang="ar" style="margin-left:auto;color:#2e7d4f;font-size:13.5px;line-height:1.3;font-weight:500;white-space:nowrap;text-align:right">حَسْبُ الْآدَمِيِّ لُقَيْمَاتٌ يُقِمْنَ صُلْبَهُ</span><span id="trv" style="display:none;margin-left:auto;align-items:center;gap:5px;color:var(--mut)"></span></span></p>
