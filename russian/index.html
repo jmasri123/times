@@ -18,13 +18,19 @@ h1{font-size:22px;margin:0}
 #play{display:flex;align-items:center;gap:6px;font:600 16px system-ui,-apple-system,sans-serif;color:#fff;background:var(--ac);border:0;border-radius:99px;padding:9px 16px 9px 13px}
 #play svg{width:16px;height:16px;fill:currentColor}
 ol{list-style:none;margin:0;padding:0;display:grid;gap:6px}
-li button{width:100%;display:flex;align-items:center;gap:10px;text-align:left;font:inherit;color:inherit;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px 12px}
-li.on button{border-color:var(--ac);background:var(--acs)}
-.t{flex:1;min-width:0}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+li.x{display:flex;align-items:center;gap:4px;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:0 6px 0 0}
+li.on{border-color:var(--ac);background:var(--acs)}
+.t{flex:1;min-width:0;text-align:left;padding:10px 4px 10px 12px}
 .t b{display:block;font-size:16px}
 .t span{display:block;font-size:13px;color:var(--mut);margin-top:2px}
-.n{flex:none;min-width:40px;text-align:center;font:600 13px ui-monospace,SFMono-Regular,monospace;color:var(--mut);border:1px solid var(--bd);border-radius:99px;padding:3px 6px}
-li.on .n{color:#fff;background:var(--ac);border-color:var(--ac)}
+.pz{display:none;flex:none;width:34px;height:34px;border-radius:99px;background:var(--ac);color:#fff}
+.pz svg{width:14px;height:14px;fill:currentColor;display:block;margin:auto}
+body.pl li.on .pz{display:block}
+.st{flex:none;display:flex;align-items:center;border:1px solid var(--bd);border-radius:99px}
+.st button{width:30px;height:32px;font:500 18px system-ui,-apple-system,sans-serif;color:var(--mut)}
+.n{min-width:34px;text-align:center;font:600 13px ui-monospace,SFMono-Regular,monospace;color:var(--mut)}
+li.on .st{border-color:var(--ac)}li.on .n{color:var(--ac)}
 li.h button{display:flex;align-items:center;gap:6px;width:auto;border:0;background:none;padding:10px 2px 2px;font:700 12px system-ui,-apple-system,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--ac)}
 li.h button svg{width:10px;height:10px;fill:currentColor}
 li.h:first-child button{padding-top:0}
@@ -45,17 +51,28 @@ const IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='M
 const $=id=>document.getElementById(id),list=$('list'),playBtn=$('play'),note=$('note');
 let run=0,playing=false,cur=-1,rep=0,ac=null,lock=null,timers=[];
 
-const PLAY='<svg viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>';
-list.innerHTML=EX.map((e,i)=>(BL[i]!==BL[i-1]?'<li class="h"><button type="button" data-b="'+BL[i]+'">'+BLOCKS[BL[i]][0]+PLAY+'</button></li>':'')+'<li id="r'+i+'"><button type="button" data-i="'+i+'"><span class="t"><b>'+e[1]+'</b><span>'+e[2]+'</span></span><span class="n">×'+e[3]+'</span></button></li>').join('');
+// Rep counts the user set with −/+ are kept on this device, keyed by the Russian text.
+let saved={};try{saved=JSON.parse(localStorage.getItem('ru-reps')||'{}')}catch(e){}
+EX.forEach(e=>{const n=saved[e[0]];if(n>=1&&n<=99)e[3]=n});
+function saveReps(){try{const o={};EX.forEach(e=>o[e[0]]=e[3]);localStorage.setItem('ru-reps',JSON.stringify(o))}catch(e){}}
+
+const PLAY='<svg viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>',PAUSE='<svg viewBox="0 0 24 24"><rect x="5" y="4" width="5" height="16" rx="1"/><rect x="14" y="4" width="5" height="16" rx="1"/></svg>';
+list.innerHTML=EX.map((e,i)=>(BL[i]!==BL[i-1]?'<li class="h"><button type="button" data-b="'+BL[i]+'">'+BLOCKS[BL[i]][0]+PLAY+'</button></li>':'')+
+ '<li class="x" id="r'+i+'"><button type="button" class="t" data-i="'+i+'"><b>'+e[1]+'</b><span>'+e[2]+'</span></button>'+
+ '<button type="button" class="pz" data-p="'+i+'" aria-label="Pause">'+PAUSE+'</button>'+
+ '<span class="st"><button type="button" data-d="-1" data-k="'+i+'" aria-label="Fewer">−</button><span class="n"></span><button type="button" data-d="1" data-k="'+i+'" aria-label="More">+</button></span></li>').join('');
 const row=i=>document.getElementById('r'+i);
-function badge(i,txt){row(i).querySelector('.n').textContent=txt}
+let curR=0;
+function badge(i){row(i).querySelector('.n').textContent=(i===cur&&curR?curR+'/':'×')+EX[i][3]}
 function mark(i,r){
-  if(cur>=0&&cur!==i){row(cur).classList.remove('on');badge(cur,'×'+EX[cur][3])}
-  cur=i;if(i<0)return;
-  row(i).classList.add('on');badge(i,r?r+'/'+EX[i][3]:'×'+EX[i][3]);
-  row(i).scrollIntoView({block:'nearest',behavior:'smooth'});
+  const prev=cur;cur=i;curR=r||0;
+  if(prev>=0&&prev!==i){row(prev).classList.remove('on');badge(prev)}
+  if(i<0)return;
+  row(i).classList.add('on');badge(i);pzIcon();
+  if(prev!==i)row(i).scrollIntoView({block:'nearest',behavior:'smooth'});
 }
-function setPlay(on){playing=on;playBtn.innerHTML=on?'<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>Stop':'<svg viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>Play all'}
+EX.forEach((e,i)=>badge(i));
+function setPlay(on){playing=on;document.body.classList.toggle('pl',on);playBtn.innerHTML=on?'<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>Stop':'<svg viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>Play all'}
 function say(msg){note.textContent=msg;note.style.display=msg?'block':'none'}
 setPlay(false);
 
@@ -115,10 +132,13 @@ async function wake(on){
   try{if(on){if('wakeLock' in navigator)lock=await navigator.wakeLock.request('screen')}else if(lock){lock.release();lock=null}}catch(e){}
 }
 
-function stop(){run++;clearT();try{ss.cancel()}catch(e){}setPlay(false);mark(-1);wake(false)}
+let paused=null,span=null;                   // paused: {i,r} to resume from; span: [from,to] being played
+function pzIcon(){if(cur>=0){const p=row(cur).querySelector('.pz');p.innerHTML=paused?PLAY:PAUSE;p.setAttribute('aria-label',paused?'Resume':'Pause')}}
+function stop(){run++;clearT();try{ss.cancel()}catch(e){}paused=null;span=null;setPlay(false);mark(-1);wake(false)}
+function pause(){if(!playing||paused)return;run++;clearT();try{ss.cancel()}catch(e){}paused={i:cur,r:curR};pzIcon();wake(false)}
 
-function play(from,to){                     // plays expressions from..to-1: one beep between expressions, two between blocks
-  const id=++run;clearT();say('');
+function play(from,to,startRep){             // plays expressions from..to-1: one beep between expressions, two between blocks
+  const id=++run;clearT();say('');paused=null;span=[from,to];
   if(!ss){say('Speech is not available in this browser.');return}
   if(ss.speaking||ss.pending)ss.cancel();
   unlockAudio();setPlay(true);wake(true);
@@ -132,11 +152,15 @@ function play(from,to){                     // plays expressions from..to-1: one
       else stop();
     });
   };
-  step(from,1);                              // first speak() runs synchronously inside the tap, which iOS requires
+  step(from,startRep||1);                    // first speak() runs synchronously inside the tap, which iOS requires
 }
 
 playBtn.addEventListener('click',()=>playing?stop():play(0,EX.length));
 list.addEventListener('click',e=>{
+  const d=e.target.closest('button[data-d]');
+  if(d){const i=+d.dataset.k;EX[i][3]=Math.max(1,Math.min(99,EX[i][3]+ +d.dataset.d));saveReps();badge(i);return}
+  const p=e.target.closest('button[data-p]');
+  if(p){if(paused){const q=paused;play(q.i,span[1],Math.min(q.r||1,EX[q.i][3]))}else if(playing)pause();return}
   const h=e.target.closest('button[data-b]');
   if(h){const k=+h.dataset.b;if(playing)stop();play(BL.indexOf(k),BL.lastIndexOf(k)+1);return}
   const b=e.target.closest('button[data-i]');if(!b)return;
@@ -144,6 +168,6 @@ list.addEventListener('click',e=>{
   const i=+b.dataset.i;if(playing)stop();else{run++;clearT();ss.cancel()}
   say('');const id=run;mark(i,0);speak(EX[i][0],id,()=>{if(id===run)mark(-1)});
 });
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&playing)wake(true)});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&playing&&!paused)wake(true)});
 </script>
 </body></html>
