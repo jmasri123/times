@@ -224,8 +224,8 @@ function dial(P,now,d){
  {const L=EB-W/2-40;
   s+=`<g transform='translate(${C} ${C-40})' stroke-linejoin='round'><path d='M0 14L-4.5 -16L0 ${-L}L4.5 -16Z' fill='none' stroke='#fff' stroke-width='3.2'/><path d='M0 14L-4.5 -16L0 ${-L}Z' fill='#f3d77a' stroke='#4a3500' stroke-width='.6'/><path d='M0 14L4.5 -16L0 ${-L}Z' fill='#b8860b' stroke='#4a3500' stroke-width='.6'/><circle r='5.5' fill='#d4a62a' stroke='#4a3500' stroke-width='1'/><circle r='1.8' fill='#4a3500'/></g>`}
  const hs=iq0||m[0][0],hf=Math.min(/^\d\d:\d\d$/.test(hs)?40:26,150/(hs.length*.58));
- if(!solo)s+=`<text x='${C}' y='${C}' text-anchor='middle' dominant-baseline='central' font-size='${f(hf)}' font-weight='700' fill='var(--fg)' stroke='${hb}' stroke-width='4' paint-order='stroke'>${hs}</text>`;
- let y=solo?C-(dl.length-1)*11+6:C+30;
+ const sh=solo?0:26-.365*hf;if(!solo)s+=`<text x='${C}' y='${f(C-sh)}' text-anchor='middle' dominant-baseline='central' font-size='${f(hf)}' font-weight='700' fill='var(--fg)' stroke='${hb}' stroke-width='4' paint-order='stroke'>${hs}</text>`;
+ let y=solo?C-(dl.length-1)*11+6:C+30-sh;
  dl.forEach(t=>{s+=`<text x='${C}' y='${f(y)}' text-anchor='middle' font-size='${f(Math.min(solo?18:16,192/(t.length*.55)))}' fill='${solo?'var(--fg)':'var(--mut)'}' font-weight='${solo?600:400}' stroke='${hb}' stroke-width='4' paint-order='stroke'>${t}</text>`;y+=solo?22:17});
  if(gi===13)s+=`<text x='${C}' y='${f(y)}' text-anchor='middle' font-size='14' font-weight='700' fill='var(--no)' stroke='var(--bg)' stroke-width='4' paint-order='stroke'>Nafila Makruh</text>`;
  {const s0=s;s='';const AR=[[F[0],F[2]],[D[0],D[3]],[A[0],A[2]],[M[0],M[3]],[I[0],G[0]]];
