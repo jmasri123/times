@@ -118,22 +118,44 @@ function speak(text,id,done){
   later(dog,est);
 }
 
+// Beeps are short WAV clips played through an <audio> element, which iPhone handles more reliably
+// than Web Audio between speech utterances (Web Audio is only the fallback).
+function wav(starts,len){
+  const sr=22050,n=Math.round(sr*len),buf=new ArrayBuffer(44+n*2),d=new DataView(buf);
+  const w=(o,t)=>{for(let k=0;k<t.length;k++)d.setUint8(o+k,t.charCodeAt(k))};
+  w(0,'RIFF');d.setUint32(4,36+n*2,true);w(8,'WAVEfmt ');d.setUint32(16,16,true);d.setUint16(20,1,true);d.setUint16(22,1,true);
+  d.setUint32(24,sr,true);d.setUint32(28,sr*2,true);d.setUint16(32,2,true);d.setUint16(34,16,true);w(36,'data');d.setUint32(40,n*2,true);
+  const L=.18;
+  for(let k=0;k<n;k++){const t=k/sr;let v=0;
+    for(const s0 of starts){const x=t-s0;if(x>=0&&x<L)v+=Math.sin(2*Math.PI*880*x)*Math.min(1,x/.01,(L-x)/.04)}
+    d.setInt16(44+k*2,Math.max(-1,Math.min(1,v*.6))*32767,true)}
+  return URL.createObjectURL(new Blob([buf],{type:'audio/wav'}));
+}
+const SND={0:wav([],.05),1:wav([0],.3),2:wav([0,.25],.5)};
+let au=null;
 function unlockAudio(){
-  try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}  // let the beep sound with the silent switch on
+  try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}  // let beeps sound with the silent switch on
+  try{au=au||new Audio();au.preload='auto';au.src=SND[0];const p=au.play();if(p)p.catch(()=>{})}catch(e){}  // unlock inside the tap
   try{
     const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
     ac=ac||new AC();if(ac.state!=='running')ac.resume();
     const b=ac.createBuffer(1,1,22050),s=ac.createBufferSource();s.buffer=b;s.connect(ac.destination);s.start(0);
   }catch(e){}
 }
-function beep(n){n=n||1;for(let k=0;k<n;k++)tone(k*.22)}
-function tone(dt){
+function beep(n){
+  n=n>1?2:1;
+  try{au.src=SND[n];const p=au.play();if(p&&p.catch)p.catch(()=>webBeep(n));return}catch(e){}
+  webBeep(n);
+}
+async function webBeep(n){
   try{
-    if(!ac)return;if(ac.state!=='running')ac.resume();
-    const t=ac.currentTime+.03+dt,o=ac.createOscillator(),g=ac.createGain();
-    o.type='sine';o.frequency.value=880;
-    g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.5,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+.16);
-    o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+.18);
+    if(!ac)return;if(ac.state!=='running')await ac.resume();
+    for(let k=0;k<n;k++){
+      const t=ac.currentTime+.05+k*.25,o=ac.createOscillator(),g=ac.createGain();
+      o.type='sine';o.frequency.value=880;
+      g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.5,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+.18);
+      o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+.2);
+    }
   }catch(e){}
 }
 
