@@ -25,6 +25,9 @@ li.on button{border-color:var(--ac);background:var(--acs)}
 .t span{display:block;font-size:13px;color:var(--mut);margin-top:2px}
 .n{flex:none;min-width:40px;text-align:center;font:600 13px ui-monospace,SFMono-Regular,monospace;color:var(--mut);border:1px solid var(--bd);border-radius:99px;padding:3px 6px}
 li.on .n{color:#fff;background:var(--ac);border-color:var(--ac)}
+li.h button{display:flex;align-items:center;gap:6px;width:auto;border:0;background:none;padding:10px 2px 2px;font:700 12px system-ui,-apple-system,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--ac)}
+li.h button svg{width:10px;height:10px;fill:currentColor}
+li.h:first-child button{padding-top:0}
 #note{display:none;font-size:13px;color:var(--ac);margin:10px 2px 0}
 </style></head><body><main>
 <header><h1>Russian</h1><button id="play" type="button"></button></header>
@@ -32,17 +35,9 @@ li.on .n{color:#fff;background:var(--ac);border-color:var(--ac)}
 <p id="note" role="status"></p>
 </main>
 <script>
-// [Russian (spoken), transliteration, English, repetitions]
-const EX=[
-['Вы говорите по-английски?','Vy govorite po-angliyski?','Do you speak English?',10],
-['Я немного говорю по-русски.','Ya nemnogo govoryu po-russki.','I speak a little Russian.',10],
-['Привет, как дела?','Privet, kak dela?','Hi, how are you?',2],
-['Хорошо, а у тебя?','Khorosho, a u tebya?','Good, and you?',2],
-['Здравствуйте. Приятно познакомиться.','Zdravstvuyte. Priyatno poznakomitsya.','Hello. Nice to meet you.',2],
-['Мне тоже приятно познакомиться.','Mne tozhe priyatno poznakomitsya.','Nice to meet you too.',2],
-['Большое спасибо.','Bolshoye spasibo.','Thank you very much.',2],
-['Пожалуйста.','Pozhaluysta.',"Please / You're welcome.",2]];
-const BEEP_AFTER=[0,1];          // beep after the last repetition of expressions 1 and 2
+// Blocks of [Russian (spoken), transliteration, English, repetitions]. One beep after each expression, two between blocks.
+const BLOCKS=[["Greetings", [["Доброе утро.", "Dobroe utro.", "Good morning.", 10], ["Добрый день.", "Dobriy den'.", "Good afternoon.", 10], ["Добрый вечер.", "Dobriy vecher.", "Good evening.", 10], ["Привет, как дела?", "Privet, kak dela?", "Hi, how are you?", 2], ["Хорошо, а у тебя?", "Khorosho, a u tebya?", "Good, and you?", 2], ["Нормально.", "Normalno.", "Okay / Regular.", 2]]], ["Introductions", [["Здравствуйте. Приятно познакомиться.", "Zdravstvuyte. Priyatno poznakomitsya.", "Hello. Nice to meet you.", 2], ["Мне тоже приятно познакомиться.", "Mne tozhe priyatno poznakomitsya.", "Nice to meet you too.", 2], ["Меня зовут Джафар.", "Menya zovut Jaafar", "My name is Jaafar", 2], ["Вы откуда?", "Vy otkuda?", "Where are you from?", 10], ["Я из Марокко.", "Ya iz Marokko.", "I'm from Morocco.", 10]]], ["Getting by", [["Извините, вы говорите по-английски?", "Izvinite, Vy govorite po-angliyski?", "Excuse me, Do you speak English?", 10], ["Я немного говорю по-русски.", "Ya nemnogo govoryu po-russki.", "I speak a little Russian.", 10], ["Простите.", "Prostite.", "Forgive me. (formal)", 10], ["Прошу прощения.", "Proshu proshcheniya.", "I ask for forgiveness", 10], ["Большое спасибо.", "Bolshoye spasibo.", "Thank you very much.", 2], ["Пожалуйста.", "Pozhaluysta.", "Please / You're welcome.", 2]]], ["Goodbyes", [["Увидимся.", "Uvidimsya.", "See you.", 10], ["Пока.", "Poka.", "Bye. See you later.", 2], ["До свидания.", "Do svidaniya.", "Till (the next) meeting.", 2], ["Спокойной ночи.", "Spokoinoy nochi.", "Good night.", 10]]]];
+const EX=[],BL=[];BLOCKS.forEach((b,k)=>b[1].forEach(e=>{EX.push(e);BL.push(k)}));
 const RATE=.8,GAP=700,BEEP_GAP=900;
 
 const ss=window.speechSynthesis;
@@ -50,13 +45,15 @@ const IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='M
 const $=id=>document.getElementById(id),list=$('list'),playBtn=$('play'),note=$('note');
 let run=0,playing=false,cur=-1,rep=0,ac=null,lock=null,timers=[];
 
-list.innerHTML=EX.map((e,i)=>'<li id="r'+i+'"><button type="button" data-i="'+i+'"><span class="t"><b>'+e[1]+'</b><span>'+e[2]+'</span></span><span class="n">×'+e[3]+'</span></button></li>').join('');
-function badge(i,txt){list.children[i].querySelector('.n').textContent=txt}
+const PLAY='<svg viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>';
+list.innerHTML=EX.map((e,i)=>(BL[i]!==BL[i-1]?'<li class="h"><button type="button" data-b="'+BL[i]+'">'+BLOCKS[BL[i]][0]+PLAY+'</button></li>':'')+'<li id="r'+i+'"><button type="button" data-i="'+i+'"><span class="t"><b>'+e[1]+'</b><span>'+e[2]+'</span></span><span class="n">×'+e[3]+'</span></button></li>').join('');
+const row=i=>document.getElementById('r'+i);
+function badge(i,txt){row(i).querySelector('.n').textContent=txt}
 function mark(i,r){
-  if(cur>=0&&cur!==i){list.children[cur].classList.remove('on');badge(cur,'×'+EX[cur][3])}
+  if(cur>=0&&cur!==i){row(cur).classList.remove('on');badge(cur,'×'+EX[cur][3])}
   cur=i;if(i<0)return;
-  list.children[i].classList.add('on');badge(i,r?r+'/'+EX[i][3]:'×'+EX[i][3]);
-  list.children[i].scrollIntoView({block:'nearest',behavior:'smooth'});
+  row(i).classList.add('on');badge(i,r?r+'/'+EX[i][3]:'×'+EX[i][3]);
+  row(i).scrollIntoView({block:'nearest',behavior:'smooth'});
 }
 function setPlay(on){playing=on;playBtn.innerHTML=on?'<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>Stop':'<svg viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>Play all'}
 function say(msg){note.textContent=msg;note.style.display=msg?'block':'none'}
@@ -103,13 +100,14 @@ function unlockAudio(){
     const b=ac.createBuffer(1,1,22050),s=ac.createBufferSource();s.buffer=b;s.connect(ac.destination);s.start(0);
   }catch(e){}
 }
-function beep(){
+function beep(n){n=n||1;for(let k=0;k<n;k++)tone(k*.22)}
+function tone(dt){
   try{
     if(!ac)return;if(ac.state!=='running')ac.resume();
-    const t=ac.currentTime+.03,o=ac.createOscillator(),g=ac.createGain();
+    const t=ac.currentTime+.03+dt,o=ac.createOscillator(),g=ac.createGain();
     o.type='sine';o.frequency.value=880;
-    g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.5,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+.3);
-    o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+.35);
+    g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.5,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+.16);
+    o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+.18);
   }catch(e){}
 }
 
@@ -119,26 +117,28 @@ async function wake(on){
 
 function stop(){run++;clearT();try{ss.cancel()}catch(e){}setPlay(false);mark(-1);wake(false)}
 
-function playAll(){
+function play(from,to){                     // plays expressions from..to-1: one beep between expressions, two between blocks
   const id=++run;clearT();say('');
   if(!ss){say('Speech is not available in this browser.');return}
   if(ss.speaking||ss.pending)ss.cancel();
   unlockAudio();setPlay(true);wake(true);
   const step=(i,r)=>{
     if(id!==run)return;
-    if(i>=EX.length){stop();return}
+    if(i>=to){stop();return}
     mark(i,r);
     speak(EX[i][0],id,()=>{
       if(r<EX[i][3])later(()=>step(i,r+1),GAP);
-      else if(BEEP_AFTER.includes(i)){later(()=>{if(id!==run)return;beep();later(()=>step(i+1,1),BEEP_GAP)},GAP)}
-      else later(()=>step(i+1,1),GAP);
+      else if(i+1<to){later(()=>{if(id!==run)return;beep(BL[i+1]!==BL[i]?2:1);later(()=>step(i+1,1),BEEP_GAP)},GAP)}
+      else stop();
     });
   };
-  step(0,1);                                 // first speak() runs synchronously inside the tap, which iOS requires
+  step(from,1);                              // first speak() runs synchronously inside the tap, which iOS requires
 }
 
-playBtn.addEventListener('click',()=>playing?stop():playAll());
+playBtn.addEventListener('click',()=>playing?stop():play(0,EX.length));
 list.addEventListener('click',e=>{
+  const h=e.target.closest('button[data-b]');
+  if(h){const k=+h.dataset.b;if(playing)stop();play(BL.indexOf(k),BL.lastIndexOf(k)+1);return}
   const b=e.target.closest('button[data-i]');if(!b)return;
   if(!ss){say('Speech is not available in this browser.');return}
   const i=+b.dataset.i;if(playing)stop();else{run++;clearT();ss.cancel()}
