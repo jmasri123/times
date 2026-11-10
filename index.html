@@ -8,7 +8,7 @@
 :root[data-theme="dark"]{--bg:#141412;--fg:#f1efe9;--mut:#a09d94;--card:#1f1f1c;--bd:#33332e;--no:#e0645f;--some:#8fd4a9;--all:#3fb872;color-scheme:dark}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
-main{max-width:640px;margin:0 auto;padding:16px}
+main{max-width:640px;margin:0 auto;padding:16px;position:relative;box-sizing:border-box;min-height:max(100dvh,680px)}
 h1{font-size:22px;margin:4px 0}
 .mut{color:var(--mut);font-size:14px}
 .card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin:12px 0}
@@ -31,7 +31,7 @@ main>*:not(#out):not(#geop):not(#wx):not(#alt){display:none}
 #loc2{display:flex;align-items:center;gap:6px}
 #dt{text-align:center;font-size:12px;font-weight:600;min-width:0}
 .dial>.mut{display:none}
-.dial svg{width:100%;max-width:470px;display:block;margin:8px auto 0}
+.dial svg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:calc(100% - 32px);max-width:470px;display:block;margin:0}.dial table{position:absolute;left:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));margin:0}
 .warn{background:var(--card);border:1px solid #e5a823;border-radius:10px;padding:10px;font-size:14px;margin:10px 0}
 </style><link rel="apple-touch-icon" href="icon.png"><meta name="apple-mobile-web-app-title" content="Dashboard"></head><body><main>
 <h1>Prayer time windows</h1>
