@@ -44,6 +44,7 @@
   form{display:flex;gap:8px;margin-top:10px}
   form input{flex:1;min-width:0;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:12px;font-size:16px}
   form .btn{width:auto;padding:12px 16px}
+  form .btn.icon{padding:10px 12px;font-size:20px}
   .verdict{display:flex;gap:12px;align-items:center;border-radius:12px;padding:12px}
   .mark{flex:none;width:52px;height:52px}
   .verdict h2{margin:0;font-size:19px}
@@ -83,11 +84,14 @@
   </div>
 
   <form id="manual" autocomplete="off">
-    <input id="code" inputmode="numeric" pattern="[0-9]*" placeholder="Or type the barcode number">
+    <label class="btn secondary icon" for="photo" title="Photo of barcode">📷</label>
+    <input id="photo" type="file" accept="image/*" capture="environment" hidden>
+    <input id="code" inputmode="numeric" pattern="[0-9]*" placeholder="Or type the number">
     <button class="btn" type="submit">Check</button>
   </form>
 
   <div id="result"></div>
+  <div id="fileReader" hidden></div>
 
   <details>
     <summary>How products are rated</summary>
@@ -238,25 +242,54 @@ async function check(code){
 /* ---------- Scanner ---------- */
 let scanner = null, paused = false, lastCode = "", lastAt = 0;
 
-function validEAN(c){
-  if (![8,12,13].includes(c.length)) return c.length >= 6; // let other lengths through
+function checkDigitOK(c){
   const d = c.split("").map(Number), chk = d.pop();
   const sum = d.reverse().reduce((s, n, i) => s + n * (i % 2 === 0 ? 3 : 1), 0);
   return (10 - (sum % 10)) % 10 === chk;
 }
 
-function onScan(text){
-  if (paused) return;
-  const code = text.replace(/\D/g, "");
-  if (!validEAN(code)) return;
-  const now = Date.now();
-  // require two matching reads in a row to avoid misreads
-  if (code !== lastCode || now - lastAt > 1500) { lastCode = code; lastAt = now; return; }
+// Expand an 8-digit UPC-E code to its 12-digit UPC-A form.
+function upceToUpca(e){
+  const ns = e[0], d = e.slice(1, 7), chk = e[7], last = d[5];
+  let body;
+  if ("012".includes(last)) body = d.slice(0,2) + last + "0000" + d.slice(2,5);
+  else if (last === "3")    body = d.slice(0,3) + "00000" + d.slice(3,5);
+  else if (last === "4")    body = d.slice(0,4) + "00000" + d[4];
+  else                      body = d.slice(0,5) + "0000" + last;
+  return ns + body + chk;
+}
+
+// Returns the code to look up, or null if it fails its check digit.
+function normalize(c, fmt = ""){
+  if (c.length === 12 || c.length === 13) return checkDigitOK(c) ? c : null;
+  if (c.length === 8) {
+    const upce = "01".includes(c[0]) && checkDigitOK(upceToUpca(c));
+    if (upce && (/UPC_E/i.test(fmt) || !checkDigitOK(c))) return upceToUpca(c); // UPC-E
+    if (checkDigitOK(c)) return c;                                              // EAN-8
+    return null;
+  }
+  if (c.length === 6 || c.length === 7) return c;          // UPC-E without system/check digit
+  return null;
+}
+
+function found(code){
   paused = true; lastCode = "";
-  try { scanner.pause(true); } catch(e){}
+  try { scanner && scanner.pause(true); } catch(e){}
   if (navigator.vibrate) navigator.vibrate(60);
   $("code").value = code;
   check(code);
+}
+
+function onScan(text, res){
+  if (paused) return;
+  const raw = text.replace(/\D/g, "");
+  const fmt = res && res.result && res.result.format ? res.result.format.formatName : "";
+  const code = normalize(raw, fmt);
+  if (code) { found(code); return; }
+  // no check digit to rely on: accept after two identical reads
+  const now = Date.now();
+  if (raw.length >= 6 && raw === lastCode && now - lastAt < 1500) { found(raw); return; }
+  lastCode = raw; lastAt = now;
 }
 
 function resumeScan(){
@@ -265,26 +298,51 @@ function resumeScan(){
   try { scanner.resume(); } catch(e){}
 }
 
+const FORMATS = () => { const F = Html5QrcodeSupportedFormats; return [F.EAN_13, F.EAN_8, F.UPC_A, F.UPC_E]; };
+
 async function startCamera(){
   $("camMsg").innerHTML = `<div class="spin" style="border-top-color:#fff"></div>`;
   try {
-    const F = Html5QrcodeSupportedFormats;
     scanner = new Html5Qrcode("reader", {
-      formatsToSupport: [F.EAN_13, F.EAN_8, F.UPC_A, F.UPC_E],
+      formatsToSupport: FORMATS(),
       experimentalFeatures: { useBarCodeDetectorIfSupported: true },
       verbose: false
     });
-    await scanner.start({ facingMode: "environment" },
-      { fps: 12, qrbox: (w, h) => ({ width: Math.floor(w * 0.85), height: Math.floor(h * 0.45) }), aspectRatio: 4/3 },
-      onScan, () => {});
+    const base = { fps: 15, aspectRatio: 4/3,
+      qrbox: (w, h) => ({ width: Math.floor(w * 0.9), height: Math.floor(h * 0.6) }) };
+    try {
+      // higher resolution + continuous focus make dense or small barcodes readable
+      await scanner.start({ facingMode: "environment" }, { ...base,
+        videoConstraints: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 },
+                            advanced: [{ focusMode: "continuous" }] } }, onScan, () => {});
+    } catch(_) {
+      await scanner.start({ facingMode: "environment" }, base, onScan, () => {});
+    }
     $("camMsg").hidden = true;
     try { localStorage.setItem("camOK", "1"); } catch(e){}
   } catch(e) {
     $("camMsg").hidden = false;
-    $("camMsg").innerHTML = `<div>Camera not available. Allow camera access for this site, or type the barcode below.</div><button class="btn light" id="startBtn">Try again</button>`;
+    $("camMsg").innerHTML = `<div>Camera not available. Allow camera access for this site, or use 📷 / type the barcode below.</div><button class="btn light" id="startBtn">Try again</button>`;
     $("startBtn").onclick = startCamera;
   }
 }
+
+// Still photo: full camera resolution, works when live scanning struggles.
+$("photo").addEventListener("change", async e => {
+  const f = e.target.files && e.target.files[0];
+  e.target.value = "";
+  if (!f) return;
+  if (scanner) { paused = true; try { scanner.pause(true); } catch(_){} }
+  $("result").innerHTML = `<div class="card status"><div class="spin"></div>Reading barcode…</div>`;
+  try {
+    const reader = new Html5Qrcode("fileReader", { formatsToSupport: FORMATS(), verbose: false });
+    const res = await reader.scanFileV2(f, false);
+    const raw = res.decodedText.replace(/\D/g, "");
+    found(normalize(raw, res.result && res.result.format ? res.result.format.formatName : "") || raw);
+  } catch(err) {
+    card("none", "No barcode found", "Retake the photo closer, flat and in focus, or type the number.");
+  }
+});
 
 $("startBtn").onclick = startCamera;
 $("manual").addEventListener("submit", e => {
