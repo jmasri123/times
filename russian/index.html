@@ -47,8 +47,8 @@ li.x.c:not(.on)+li.h{padding-top:8px}
 <p id="note" role="status"></p>
 </main>
 <script>
-// Blocks of [Russian (spoken), transliteration, English, repetitions]. One beep after each expression, two between blocks.
-const BLOCKS=[["Greetings", [["Доброе утро.", "Dobroe utro.", "Good morning.", 10], ["Добрый день.", "Dobriy den'.", "Good afternoon.", 10], ["Добрый вечер.", "Dobriy vecher.", "Good evening.", 10], ["Привет, как дела?", "Privet, kak dela?", "Hi, how are you?", 2], ["Хорошо, а у тебя?", "Khorosho, a u tebya?", "Good, and you?", 2], ["Нормально.", "Normalno.", "Okay / Regular.", 2]]], ["Introductions", [["Здравствуйте. Приятно познакомиться.", "Zdravstvuyte. Priyatno poznakomitsya.", "Hello. Nice to meet you.", 2], ["Мне тоже приятно познакомиться.", "Mne tozhe priyatno poznakomitsya.", "Nice to meet you too.", 2], ["Меня зовут Джафар.", "Menya zovut Jaafar", "My name is Jaafar", 2], ["Вы откуда?", "Vy otkuda?", "Where are you from?", 10], ["Я из Марокко, но живу в Америке.", "Ya iz Marokko, no zhivu v Amerike.", "I'm from Morocco, but I live in America.", 10]]], ["Getting by", [["Извините, вы говорите по-английски?", "Izvinite, Vy govorite po-angliyski?", "Excuse me, Do you speak English?", 10], ["Я немного говорю по-русски.", "Ya nemnogo govoryu po-russki.", "I speak a little Russian.", 10], ["Прошу прощения.", "Proshu proshcheniya.", "I ask for forgiveness", 10], ["Простите.", "Prostite.", "Forgive me. (formal)", 10], ["Большое спасибо.", "Bolshoye spasibo.", "Thank you very much.", 2], ["Пожалуйста.", "Pozhaluysta.", "Please / You're welcome.", 2]]], ["Goodbyes", [["До свидания.", "Do svidaniya.", "Till (the next) meeting.", 2], ["Увидимся.", "Uvidimsya.", "See you.", 10], ["Пока.", "Poka.", "Bye. See you later.", 2], ["Спокойной ночи.", "Spokoinoy nochi.", "Good night.", 10]]], ["Pronouns", [["Я.", "Ya", "I", 2], ["Ты.", "Ty", "You (informal)", 2], ["Он.", "On", "He", 2], ["Она.", "Ona", "She", 2], ["Мы.", "My", "We", 2], ["Вы.", "Vy", "You (plural / formal)", 2], ["Они.", "Oni", "They", 2], ["Меня.", "Menya", "Me", 2], ["Его.", "Yego", "Him", 2], ["Её.", "Yeyo", "Her", 2], ["Их.", "Ikh", "Them", 2]]]];
+// Blocks of [Russian (spoken), transliteration, English, repetitions, English (spoken first, optional)]. One beep after each expression, two between blocks.
+const BLOCKS=[["Greetings", [["Доброе утро.", "Dobroe utro.", "Good morning.", 10], ["Добрый день.", "Dobriy den'.", "Good afternoon.", 10], ["Добрый вечер.", "Dobriy vecher.", "Good evening.", 10], ["Привет, как дела?", "Privet, kak dela?", "Hi, how are you?", 2], ["Хорошо, а у тебя?", "Khorosho, a u tebya?", "Good, and you?", 2], ["Нормально.", "Normalno.", "Okay / Regular.", 2]]], ["Introductions", [["Здравствуйте. Приятно познакомиться.", "Zdravstvuyte. Priyatno poznakomitsya.", "Hello. Nice to meet you.", 2], ["Мне тоже приятно познакомиться.", "Mne tozhe priyatno poznakomitsya.", "Nice to meet you too.", 2], ["Меня зовут Джафар.", "Menya zovut Jaafar", "My name is Jaafar", 2], ["Вы откуда?", "Vy otkuda?", "Where are you from?", 10], ["Я из Марокко, но живу в Америке.", "Ya iz Marokko, no zhivu v Amerike.", "I'm from Morocco, but I live in America.", 10]]], ["Getting by", [["Извините, вы говорите по-английски?", "Izvinite, Vy govorite po-angliyski?", "Excuse me, Do you speak English?", 10], ["Я немного говорю по-русски.", "Ya nemnogo govoryu po-russki.", "I speak a little Russian.", 10], ["Прошу прощения.", "Proshu proshcheniya.", "I ask for forgiveness", 10], ["Простите.", "Prostite.", "Forgive me. (formal)", 10], ["Большое спасибо.", "Bolshoye spasibo.", "Thank you very much.", 2], ["Пожалуйста.", "Pozhaluysta.", "Please / You're welcome.", 2]]], ["Goodbyes", [["До свидания.", "Do svidaniya.", "Till (the next) meeting.", 2], ["Увидимся.", "Uvidimsya.", "See you.", 10], ["Пока.", "Poka.", "Bye. See you later.", 2], ["Спокойной ночи.", "Spokoinoy nochi.", "Good night.", 10]]], ["Pronouns", [["Я.", "Ya", "I", 2], ["Ты.", "Ty", "You (informal)", 2], ["Он.", "On", "He", 2], ["Она.", "Ona", "She", 2], ["Мы.", "My", "We", 2], ["Вы.", "Vy", "You (plural / formal)", 2], ["Они.", "Oni", "They", 2], ["Меня.", "Menya", "Me", 2], ["Его.", "Yego", "Him", 2], ["Её.", "Yeyo", "Her", 2], ["Их.", "Ikh", "Them", 2]]], ["Verbs", [["Говорить.", "Govorit'", "Speak", 2, "to speak"], ["Разговаривать.", "Razgovarivat'", "Talk", 2, "to talk"], ["Хотеть.", "Khotet'", "Want", 2, "to want"], ["Нужно.", "Nuzhno", "Need (it's needed)", 2, "need"], ["Нравиться.", "Nravit'sya", "Like (to be pleasing)", 2, "to like"], ["Есть.", "Yest'", "Eat", 2, "to eat"], ["Пить.", "Pit'", "Drink", 2, "to drink"], ["Улыбаться.", "Ulybat'sya", "Smile", 2, "to smile"], ["Смеяться.", "Smeyat'sya", "Laugh", 2, "to laugh"], ["Сидеть.", "Sidet'", "Sit", 2, "to sit"], ["Ходить.", "Khodit'", "Walk", 2, "to walk"], ["Бегать.", "Begat'", "Run", 2, "to run"], ["Водить машину.", "Vodit' mashinu", "Drive (a car)", 2, "to drive"], ["Летать.", "Letat'", "Fly", 2, "to fly"]]]];
 const EX=[],BL=[];BLOCKS.forEach((b,k)=>b[1].forEach(e=>{EX.push(e);BL.push(k)}));
 const RATE=.8,GAP=700,BEEP_GAP=900;
 
@@ -104,11 +104,14 @@ function voice(){
 function clearT(){timers.forEach(clearTimeout);timers=[]}
 function later(f,ms){timers.push(setTimeout(f,ms))}
 
-function speak(text,id,done){
-  const v=voice();
+// One repetition: the English (when the expression has it), a short pause, then the Russian.
+function sayRep(e,id,done){if(e[4])speak(e[4],id,()=>later(()=>speak(e[0],id,done),450),'en');else speak(e[0],id,done)}
+function enVoice(){loadV();const en=voices.filter(v=>/^en[-_]US/i.test(v.lang));return en.find(v=>/samantha/i.test(v.name))||en.find(v=>v.default)||en[0]||null}
+function speak(text,id,done,lang){
+  const en=lang==='en',v=en?enVoice():voice();
   if(v===false){say('Milena voice not found. Add it in Settings › Accessibility › Spoken Content › Voices › Russian.');stop();return}
   const u=new SpeechSynthesisUtterance(text);
-  u.lang='ru-RU';u.rate=RATE;if(v)u.voice=v;
+  u.lang=en?'en-US':'ru-RU';u.rate=en?.9:RATE;if(v)u.voice=v;
   let fin=false;const end=()=>{if(fin||id!==run)return;fin=true;done&&done()};
   u.onend=end;u.onerror=end;
   window._u=u;                               // keep a reference so Safari doesn't garbage-collect it mid-speech
@@ -178,7 +181,7 @@ function play(from,to,startRep){             // plays expressions from..to-1: on
     if(id!==run)return;
     if(i>=to){stop();return}
     mark(i,r);
-    speak(EX[i][0],id,()=>{
+    sayRep(EX[i],id,()=>{
       if(r<EX[i][3])later(()=>step(i,r+1),GAP);
       else if(i+1<to){later(()=>{if(id!==run)return;beep(BL[i+1]!==BL[i]?2:1);later(()=>step(i+1,1),BEEP_GAP)},GAP)}
       else stop();
@@ -200,7 +203,7 @@ list.addEventListener('click',e=>{
   const b=e.target.closest('button[data-i]');if(!b)return;
   if(!ss){say('Speech is not available in this browser.');return}
   const i=+b.dataset.i;if(playing)stop();else{run++;clearT();ss.cancel()}
-  say('');const id=run;mark(i,0);speak(EX[i][0],id,()=>{if(id===run)mark(-1)});
+  say('');const id=run;mark(i,0);sayRep(EX[i],id,()=>{if(id===run)mark(-1)});
 });
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&playing&&!paused)wake(true)});
 </script>
