@@ -220,7 +220,7 @@ function dial(P,now,d){
  const hs=iq0||m[0][0],hf=Math.min(/^\d\d:\d\d$/.test(hs)?40:26,150/(hs.length*.58));
  const sh=solo?0:20-.365*hf;if(!solo)s+=`<text x='${C}' y='${f(C-sh)}' text-anchor='middle' dominant-baseline='central' font-size='${f(hf)}' font-weight='700' fill='var(--fg)' stroke='${hb}' stroke-width='4' paint-order='stroke'>${hs}</text>`;
  let y=solo?C-(dl.length-1)*11+6:C+35-sh+Math.max(0,hf-26)*.7;
- let dfs=0;if(!solo&&dl.length===1){const t=dl[0],w=t.split(' ');let best=[[t],Math.min((gi===13||gi===11)?14:20,172/(t.length*.5))];const tryL=ls=>{const fz=Math.min((gi===13||gi===11)?14:20,168/(Math.max(...ls.map(x=>x.length))*.5));if(fz>best[1]+.01)best=[ls,fz]};const pi=t.indexOf(' (');if(pi>0)tryL([t.slice(0,pi),t.slice(pi+1)]);for(let k=1;k<w.length;k++)tryL([w.slice(0,k).join(' '),w.slice(k).join(' ')]);dl=best[0];dfs=best[1]}
+ let dfs=0;if(!solo&&dl.length===1){const t=dl[0],w=t.split(' ');let best=[[t],Math.min((gi===13||gi===11)?18:20,172/(t.length*.5))];const tryL=ls=>{const fz=Math.min((gi===13||gi===11)?18:20,168/(Math.max(...ls.map(x=>x.length))*.5));if(fz>best[1]+.01)best=[ls,fz]};const pi=t.indexOf(' (');if(pi>0)tryL([t.slice(0,pi),t.slice(pi+1)]);for(let k=1;k<w.length;k++)tryL([w.slice(0,k).join(' '),w.slice(k).join(' ')]);dl=best[0];dfs=best[1]}
  dl.forEach(t=>{s+=`<text x='${C}' y='${f(y)}' text-anchor='middle' font-size='${f(dfs||Math.min(solo?18:16,192/(t.length*.55)))}' fill='${solo?'var(--fg)':'var(--mut)'}' font-weight='${solo?600:400}' stroke='${hb}' stroke-width='4' paint-order='stroke'>${t}</text>`;y+=solo?22:(dfs?dfs*1.15:17)});
  {const s0=s;s='';const AR=[[F[0],F[2]],[D[0],D[3]],[A[0],A[2]],[M[0],M[3]],[I[0],G[0]]];
   AR.forEach((q,i)=>{const r=i==0?120:138-(i%3)*10,on=i==cur;
