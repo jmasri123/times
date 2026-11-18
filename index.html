@@ -218,7 +218,8 @@ function dial(P,now,d){
   if(now>=dv)fq=['Pray Sunnah at ICO',cf(iq-now)+' until iqama'];
   else if(now>=F[1])fq=['Start Sunnah within',cf(dv-now)+' Iqama in '+cf(iq-now)];
   else fq=['15° Fajr in',cf(F[1]-now)+' '+sunT]}}}
- if(fq){m=[[fq[0],''],F[1]];dl=[fq[1]]}
+ if(trv&&gi===10){const t=Math.max(0,Math.floor(fix(F[2]-now,24)*3600+1e-6));fq=['Fajr Time',(t>=3600?Math.floor(t/3600)+'h '+String(Math.floor(t%3600/60)).padStart(2,'0')+'m':String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0'))+' until sunrise']}
+ if(fq){m=[[fq[0],''],trv&&gi===10?F[2]:F[1]];dl=[fq[1]]}
  if(sunT&&!fq&&now<F[0]){dl=[sunT];solo=false}
  let iq0=fq?'':iqamaLine(st,now,gi);if(iq0){solo=false;dl=[...(m[0][0]?[m[0][0]]:[]),...(gi===2?dl:[])]}
  if(!iq0&&gi===1&&!trv&&new Date().getDay()==5&&icoNear()){const K=13+50/60;if(now>=K&&now<14.25){iq0="Jumu'a ongoing";solo=false;dl=[]}else if(now<K){const t=Math.max(0,Math.floor((K-now)*3600+1e-6));solo=false;dl=[(t>=3600?Math.floor(t/3600)+'h '+String(Math.floor(t%3600/60)).padStart(2,'0')+'m':t>=600?Math.floor(t/60)+' min':String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0'))+' until Arabic Khutba (1:50 PM)']}}
