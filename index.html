@@ -158,7 +158,7 @@ function iqamaLine(st,now,gi){
  if(place.sample||Math.hypot(dx,dy)>50)return '';
  const k=String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0'),A=IQ[k];if(!A)return '';
  for(let i=0;i<5;i++){if(i==1&&n.getDay()==5)continue;const iq=A[i]/60,s0=st[i];
-  if(now>=Math.max(s0,iq-20/60)&&now<iq+7/60){if(now>=iq)return 'Jama ongoing';
+  if(now>=Math.max(s0,iq-(i==1?30:20)/60)&&now<iq+7/60){if(now>=iq)return 'Jama ongoing';
    const t=Math.max(0,Math.floor((iq-now)*3600+1e-6)),cd=t>=3600?Math.floor(t/3600)+'h '+String(Math.floor(t%3600/60)).padStart(2,'0')+'m':t>=600?Math.floor(t/60)+' min':String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0');
    return 'Iqama in '+cd}}
  return ''}
