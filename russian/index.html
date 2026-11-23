@@ -38,7 +38,10 @@ li.h button svg{width:10px;height:10px;fill:currentColor}
 li.h .cv{fill:none!important;stroke:currentColor;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s}li.h.c .cv{transform:rotate(-90deg)}
 li.h [data-b]{width:24px;height:24px;margin-left:4px;padding:0;justify-content:center;border-radius:99px;background:var(--ac);color:#fff}
 li.h [data-b] svg{width:9px;height:9px;margin-left:1px}
-li.x.c:not(.on){display:none}
+li.x{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+li.x.drag{position:relative;z-index:2;box-shadow:0 8px 24px rgba(0,0,0,.22);transform:scale(1.03);border-color:var(--ac);transition:transform .12s}
+body.dragging{-webkit-user-select:none;user-select:none}
+li.x.c:not(.on):not(.drag){display:none}
 li.x.c:not(.on)+li.h{padding-top:8px}
 #note{display:none;font-size:15px;color:var(--ac);margin:10px 2px 0}
 </style></head><body><main>
@@ -49,7 +52,21 @@ li.x.c:not(.on)+li.h{padding-top:8px}
 <script>
 // Blocks of [Russian (spoken), transliteration, English, repetitions, English (spoken first, optional)]. One beep after each expression, two between blocks.
 const BLOCKS=[["Greetings", [["Доброе утро.", "Dobroe utro.", "Good morning.", 10], ["Добрый день.", "Dobriy den'.", "Good afternoon.", 10], ["Добрый вечер.", "Dobriy vecher.", "Good evening.", 10], ["Привет, как дела?", "Privet, kak dela?", "Hi, how are you?", 2], ["Хорошо, а у тебя?", "Khorosho, a u tebya?", "Good, and you?", 2], ["Нормально.", "Normalno.", "Okay / Regular.", 2], ["Очень хорошо.", "Ochen' khorosho.", "Very good.", 2]]], ["Introductions", [["Здравствуйте. Приятно познакомиться.", "Zdravstvuyte. Priyatno poznakomitsya.", "Hello. Nice to meet you.", 2], ["Мне тоже приятно познакомиться.", "Mne tozhe priyatno poznakomitsya.", "Nice to meet you too.", 2], ["Меня зовут Джафар.", "Menya zovut Jaafar", "My name is Jaafar", 2], ["Вы откуда?", "Vy otkuda?", "Where are you from?", 10], ["Я из Марокко, но живу в Америке.", "Ya iz Marokko, no zhivu v Amerike.", "I'm from Morocco, but I live in America.", 10], ["Вы из России?", "Vy iz Rossii?", "Are you from Russia?", 10]]], ["Getting by", [["Извините, вы говорите по-английски?", "Izvinite, Vy govorite po-angliyski?", "Excuse me, Do you speak English?", 10], ["Я немного говорю по-русски.", "Ya nemnogo govoryu po-russki.", "I speak a little Russian.", 10], ["Прошу прощения.", "Proshu proshcheniya.", "I ask for forgiveness", 10], ["Простите.", "Prostite.", "Forgive me. (formal)", 10], ["Большое спасибо.", "Bolshoye spasibo.", "Thank you very much.", 2], ["Пожалуйста.", "Pozhaluysta.", "Please / You're welcome.", 2], ["Проходите, пожалуйста.", "Prokhodite, pozhaluysta.", "Come in, please.", 2], ["Что такое?", "Chto takoye?", "What is it?", 2]]], ["Goodbyes", [["До свидания.", "Do svidaniya.", "Till (the next) meeting.", 2], ["Увидимся.", "Uvidimsya.", "See you.", 10], ["Пока.", "Poka.", "Bye. See you later.", 2], ["Спокойной ночи.", "Spokoinoy nochi.", "Good night.", 10]]], ["Pronouns", [["Я.", "Ya", "I", 2], ["Ты.", "Ty", "You (informal)", 2], ["Он.", "On", "He", 2], ["Она.", "Ona", "She", 2], ["Мы.", "My", "We", 2], ["Вы.", "Vy", "You (plural / formal)", 2], ["Они.", "Oni", "They", 2], ["Меня.", "Menya", "Me", 2], ["Его.", "Yego", "Him", 2], ["Её.", "Yeyo", "Her", 2], ["Их.", "Ikh", "Them", 2]]], ["Verbs", [["Говорить.", "Govorit'", "Speak", 2, "to speak"], ["Разговаривать.", "Razgovarivat'", "Talk", 2, "to talk"], ["Хотеть.", "Khotet'", "Want", 2, "to want"], ["Нравиться.", "Nravit'sya", "Like (to be pleasing)", 2, "to like"], ["Есть.", "Yest'", "Eat", 2, "to eat"], ["Пить.", "Pit'", "Drink", 2, "to drink"], ["Улыбаться.", "Ulybat'sya", "Smile", 2, "to smile"], ["Смеяться.", "Smeyat'sya", "Laugh", 2, "to laugh"], ["Сидеть.", "Sidet'", "Sit", 2, "to sit"], ["Ходить.", "Khodit'", "Walk", 2, "to walk"], ["Бегать.", "Begat'", "Run", 2, "to run"], ["Водить машину.", "Vodit' mashinu", "Drive (a car)", 2, "to drive"], ["Летать.", "Letat'", "Fly", 2, "to fly"]]]];
-const EX=[],BL=[];BLOCKS.forEach((b,k)=>b[1].forEach(e=>{EX.push(e);BL.push(k)}));
+// The order the user set by dragging is kept on this device: {group name: [Russian text, ...]}.
+// Expressions it doesn't mention (added later) go in their own group, after the one they follow in the list above.
+(function(){
+  let o=null;try{o=JSON.parse(localStorage.getItem('ru-order')||'null')}catch(e){}
+  if(!o)return;
+  const byRu={},home=[];BLOCKS.forEach((b,k)=>b[1].forEach((e,j)=>{byRu[e[0]]=e;home.push([e,k,j])}));
+  const used=new Set(),out=BLOCKS.map(b=>(o[b[0]]||[]).filter(r=>byRu[r]&&!used.has(r)&&used.add(r)).map(r=>byRu[r]));
+  home.forEach(([e,k,j])=>{if(used.has(e[0]))return;
+    let at=0;for(let p=j-1;p>=0;p--){const q=out[k].indexOf(BLOCKS[k][1][p]);if(q>=0){at=q+1;break}}
+    out[k].splice(at,0,e);used.add(e[0])});
+  BLOCKS.forEach((b,k)=>b[1]=out[k]);
+})();
+let EX=[],BL=[];
+function index(){EX=[];BL=[];BLOCKS.forEach((b,k)=>b[1].forEach(e=>{EX.push(e);BL.push(k)}))}
+index();
 const RATE=.8,GAP=700,BEEP_GAP=900;
 
 const ss=window.speechSynthesis;
@@ -63,10 +80,14 @@ EX.forEach(e=>{const n=saved[e[0]];if(n>=1&&n<=99)e[3]=n});
 function saveReps(){try{const o={};EX.forEach(e=>o[e[0]]=e[3]);localStorage.setItem('ru-reps',JSON.stringify(o))}catch(e){}}
 
 const PLAY='<svg viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>',PAUSE='<svg viewBox="0 0 24 24"><rect x="5" y="4" width="5" height="16" rx="1"/><rect x="14" y="4" width="5" height="16" rx="1"/></svg>';
-list.innerHTML=EX.map((e,i)=>(BL[i]!==BL[i-1]?'<li class="h" id="h'+BL[i]+'"><button type="button" data-c="'+BL[i]+'"><svg class="cv" viewBox="0 0 24 24"><path d="M5 9l7 7 7-7"/></svg>'+BLOCKS[BL[i]][0]+'</button><button type="button" data-b="'+BL[i]+'" aria-label="Play '+BLOCKS[BL[i]][0]+'">'+PLAY+'</button></li>':'')+
- '<li class="x" data-g="'+BL[i]+'" id="r'+i+'"><button type="button" class="t" data-i="'+i+'"><b>'+e[1]+'</b><span>'+e[2]+'</span></button>'+
- '<button type="button" class="pz" data-p="'+i+'" aria-label="Pause">'+PAUSE+'</button>'+
- '<span class="st"><button type="button" data-d="-1" data-k="'+i+'" aria-label="Fewer">−</button><span class="n"></span><button type="button" data-d="1" data-k="'+i+'" aria-label="More">+</button></span></li>').join('');
+function render(){
+  list.innerHTML=BLOCKS.map((b,k)=>'<li class="h" id="h'+k+'"><button type="button" data-c="'+k+'"><svg class="cv" viewBox="0 0 24 24"><path d="M5 9l7 7 7-7"/></svg>'+b[0]+'</button><button type="button" data-b="'+k+'" aria-label="Play '+b[0]+'">'+PLAY+'</button></li>'+
+   b[1].map(e=>{const i=EX.indexOf(e);return '<li class="x" data-g="'+k+'" data-x="'+i+'" id="r'+i+'"><button type="button" class="t" data-i="'+i+'"><b>'+e[1]+'</b><span>'+e[2]+'</span></button>'+
+   '<button type="button" class="pz" data-p="'+i+'" aria-label="Pause">'+PAUSE+'</button>'+
+   '<span class="st"><button type="button" data-d="-1" data-k="'+i+'" aria-label="Fewer">−</button><span class="n"></span><button type="button" data-d="1" data-k="'+i+'" aria-label="More">+</button></span></li>'}).join('')).join('');
+  EX.forEach((e,i)=>badge(i));
+  BLOCKS.forEach((b,k)=>{if(shut[k])setShut(k,true)});
+}
 const row=i=>document.getElementById('r'+i);
 let curR=0;
 function badge(i){row(i).querySelector('.n').textContent=(i===cur&&curR?curR+'/':'×')+EX[i][3]}
@@ -77,11 +98,10 @@ function mark(i,r){
   row(i).classList.add('on');badge(i);pzIcon();
   if(prev!==i)row(i).scrollIntoView({block:'nearest',behavior:'smooth'});
 }
-EX.forEach((e,i)=>badge(i));
 // Collapsed groups are kept on this device. A collapsed group still shows the expression being played.
 let shut={};try{shut=JSON.parse(localStorage.getItem('ru-shut')||'{}')}catch(e){}
 function setShut(k,on){shut[k]=on;document.getElementById('h'+k).classList.toggle('c',on);document.querySelectorAll('li.x[data-g="'+k+'"]').forEach(r=>r.classList.toggle('c',on));try{localStorage.setItem('ru-shut',JSON.stringify(shut))}catch(e){}}
-BLOCKS.forEach((b,k)=>{if(shut[k])setShut(k,true)});
+render();
 function setPlay(on){playing=on;document.body.classList.toggle('pl',on);playBtn.innerHTML=on?'<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>Stop':'<svg viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>Play all'}
 function say(msg){note.textContent=msg;note.style.display=msg?'block':'none'}
 setPlay(false);
@@ -199,12 +219,62 @@ list.addEventListener('click',e=>{
   const c=e.target.closest('button[data-c]');
   if(c){const k=+c.dataset.c;setShut(k,!shut[k]);return}
   const h=e.target.closest('button[data-b]');
-  if(h){const k=+h.dataset.b;if(playing)stop();play(BL.indexOf(k),BL.lastIndexOf(k)+1);return}
+  if(h){const k=+h.dataset.b;if(BL.indexOf(k)<0)return;if(playing)stop();play(BL.indexOf(k),BL.lastIndexOf(k)+1);return}
   const b=e.target.closest('button[data-i]');if(!b)return;
   if(!ss){say('Speech is not available in this browser.');return}
   const i=+b.dataset.i;if(playing)stop();else{run++;clearT();ss.cancel()}
   say('');const id=run;mark(i,0);sayRep(EX[i],id,()=>{if(id===run)mark(-1)});
 });
+// Press and hold an expression (~0.45 s), then drag it up or down, into any group.
+let hold=null,drag=null,noClick=0;
+function pt(e){const t=e.touches?e.touches[0]||e.changedTouches[0]:e;return{x:t.clientX,y:t.clientY}}
+function down(e){
+  const li=e.target.closest('li.x');if(!li||e.target.closest('.st,.pz'))return;
+  const p=pt(e);hold={li,x:p.x,y:p.y,t:setTimeout(()=>startDrag(li,p),450)};
+}
+function startDrag(li,p){
+  hold=null;if(playing)stop();
+  drag={li,y:p.y,x:p.x};li.classList.add('drag');document.body.classList.add('dragging');noClick=Date.now();
+  try{navigator.vibrate&&navigator.vibrate(15)}catch(e){}
+  autoScroll();
+}
+function move(e){
+  const p=pt(e);
+  if(hold){if(Math.abs(p.y-hold.y)>8||Math.abs(p.x-hold.x)>8){clearTimeout(hold.t);hold=null}return}
+  if(!drag)return;
+  if(e.cancelable)e.preventDefault();       // stop the page from scrolling while dragging
+  drag.y=p.y;drag.x=p.x;place();
+}
+function place(){
+  const li=drag.li;li.style.pointerEvents='none';
+  const el=document.elementFromPoint(Math.min(drag.x,innerWidth-20),drag.y);li.style.pointerEvents='';
+  const t=el&&el.closest('li');if(!t||t===li||!list.contains(t))return;
+  const r=t.getBoundingClientRect(),below=drag.y>r.top+r.height/2;
+  if(t.classList.contains('h')){if(below)t.after(li);else if(t.previousElementSibling)t.before(li)}
+  else if(below)t.after(li);else t.before(li);
+}
+function autoScroll(){if(!drag)return;const m=70;if(drag.y<m)scrollBy(0,-10);else if(drag.y>innerHeight-m)scrollBy(0,10);if(drag.y<m||drag.y>innerHeight-m)place();requestAnimationFrame(autoScroll)}
+function up(){
+  if(hold){clearTimeout(hold.t);hold=null}
+  if(!drag)return;
+  const li=drag.li;drag=null;li.classList.remove('drag');document.body.classList.remove('dragging');noClick=Date.now();
+  const next=BLOCKS.map(b=>[b[0],[]]);let k=0;
+  [...list.children].forEach(n=>{if(n.classList.contains('h'))k=+n.id.slice(1);else next[k][1].push(EX[+n.dataset.x])});
+  let g=0;for(let n=li.previousElementSibling;n;n=n.previousElementSibling)if(n.classList.contains('h')){g=+n.id.slice(1);break}
+  BLOCKS.forEach((b,j)=>b[1]=next[j][1]);index();
+  try{const o={};BLOCKS.forEach(b=>o[b[0]]=b[1].map(e=>e[0]));localStorage.setItem('ru-order',JSON.stringify(o))}catch(e){}
+  if(shut[g])shut[g]=false;                  // dropping into a collapsed group opens it
+  try{localStorage.setItem('ru-shut',JSON.stringify(shut))}catch(e){}
+  render();
+}
+list.addEventListener('touchstart',down,{passive:true});
+document.addEventListener('touchmove',move,{passive:false});
+document.addEventListener('touchend',up);document.addEventListener('touchcancel',up);
+list.addEventListener('mousedown',e=>{if(e.button===0)down(e)});
+document.addEventListener('mousemove',move);document.addEventListener('mouseup',up);
+list.addEventListener('click',e=>{if(Date.now()-noClick<500){e.stopPropagation();e.preventDefault()}},true);
+list.addEventListener('contextmenu',e=>{if(e.target.closest('li.x'))e.preventDefault()});
+
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&playing&&!paused)wake(true)});
 </script>
 </body></html>
